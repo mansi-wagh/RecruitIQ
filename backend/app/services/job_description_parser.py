@@ -1,86 +1,88 @@
 import re
-import pandas as pd
+
+from app.services.skill_normalizer import SkillNormalizer
 
 
 class JobDescriptionParser:
 
     def __init__(self, text):
 
-        self.text = text
+        self.text = text if text else ""
+        self.lower_text = self.text.lower()
 
-        self.lower_text = text.lower()
+        self.normalizer = SkillNormalizer()
+
+    # ----------------------------------------
 
     def extract_title(self):
 
-        lines = self.text.split("\n")
+        for line in self.text.split("\n"):
 
-        for line in lines:
+            line = line.strip()
 
-            if line.strip():
+            if line:
 
-                return line.strip()
+                return line
 
         return ""
 
+    # ----------------------------------------
+
     def extract_skills(self):
 
-        df = pd.read_csv("app/data/skills.csv")
+        found = set()
 
-        skills = df["skill"].dropna().tolist()
+        for alias, info in self.normalizer._skill_map.items():
 
-        result = []
+            pattern = r"\b" + re.escape(alias) + r"\b"
 
-        for skill in skills:
+            if re.search(pattern, self.lower_text):
 
-            if skill.lower() in self.lower_text:
+                found.add(info["canonical"])
 
-                result.append(skill)
+        return sorted(found)
 
-        return sorted(list(set(result)))
+    # ----------------------------------------
 
     def extract_education(self):
-
-        education = []
 
         keywords = [
 
             "b.tech",
-
+            "b.e",
             "bachelor",
-
             "master",
-
-            "degree",
-
-            "m.tech"
+            "m.tech",
+            "phd",
+            "degree"
 
         ]
 
-        for keyword in keywords:
+        education = []
 
-            if keyword in self.lower_text:
+        for word in keywords:
 
-                education.append(keyword)
+            if word in self.lower_text:
 
-        return education
+                education.append(word)
+
+        return list(set(education))
+
+    # ----------------------------------------
 
     def extract_experience(self):
 
-        pattern = r"\d+\+?\s*years?"
+        pattern = r"\d+\+?\s*(?:years?|yrs?)"
 
-        match = re.search(
-
-            pattern,
-
-            self.lower_text
-
-        )
+        match = re.search(pattern, self.lower_text)
 
         if match:
 
             return match.group()
 
         return ""
+
+    # ----------------------------------------
 
     def extract_all(self):
 

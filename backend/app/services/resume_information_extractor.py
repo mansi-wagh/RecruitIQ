@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+from pathlib import Path
 
 
 class ResumeExtractor:
@@ -54,23 +55,28 @@ class ResumeExtractor:
 
     def extract_skills(self):
 
-        skills_df = pd.read_csv(
+        project_root = Path(__file__).resolve().parents[3]
 
-            "app/data/skills.csv"
+        skills_file = (
+            project_root
+            / "dataset"
+            / "skills"
+            / "skills.csv"
+    )
 
-        )
+        skills_df = pd.read_csv(skills_file)
 
-        skill_list = skills_df["skill"].dropna().tolist()
+        skill_list = skills_df["canonical"].dropna().tolist()
 
         found = []
 
         lower_text = self.text.lower()
 
         for skill in skill_list:
+            pattern = r"\b" + re.escape(skill.lower()) + r"\b"
 
-            if skill.lower() in lower_text:
-
-                found.append(skill)
+            if re.search(pattern, lower_text):
+                    found.append(skill)
 
         return sorted(list(set(found)))
 
