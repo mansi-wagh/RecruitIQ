@@ -55,14 +55,6 @@ OUTPUT_COLUMNS = [
     "education_gap",
     "project_match_count",
     "certification_match_count",
-    "skill_score",
-    "education_score",
-    "experience_score",
-    "project_score",
-    "certification_score",
-    "overall_score",
-    "confidence",
-    "recommendation",
     "matched_skills",
     "missing_skills",
     "retrieval_score",
@@ -697,42 +689,71 @@ def select_jobs_for_matching(resume_profile, job_profiles, candidate_indexes):
 # MATCHING AND LABELING
 # ==========================================================
 
-def create_label(match_result):
-    skill = float(match_result.get("skill_score", 0))
-    education = float(match_result.get("education_score", 0))
-    experience = float(match_result.get("experience_score", 0))
-    project = float(match_result.get("project_score", 0))
-    certification = float(match_result.get("certification_score", 0))
-    overall = float(match_result.get("overall_score", 0))
-
-    matched_skills = match_result.get("matched_skills", [])
-    matched_projects = match_result.get("matched_project_skills", [])
-    matched_certifications = match_result.get("matched_certifications", [])
-
-    label_score = (
-        skill * 0.40
-        + experience * 0.25
-        + education * 0.15
-        + project * 0.12
-        + certification * 0.08
+def create_label(
+    resume_profile,
+    job_profile,
+    match_result,
+    features,
+):
+    matched_skills = clean_list(match_result.get("matched_skills", []))
+    missing_skills = clean_list(match_result.get("missing_skills", []))
+    matched_projects = clean_list(match_result.get("matched_project_skills", []))
+    matched_certifications = clean_list(
+        match_result.get("matched_certifications", [])
     )
 
-    has_skill_evidence = skill >= 10 and len(matched_skills) > 0
-    has_basic_fit = experience >= 40 and education >= 40
+    matched_skill_count = len(matched_skills)
+    missing_skill_count = len(missing_skills)
+    job_skill_count = len(job_profile["skills"])
+
+    skill_overlap_ratio = safe_ratio(matched_skill_count, job_skill_count)
+    missing_skill_ratio = safe_ratio(missing_skill_count, job_skill_count)
+    experience_gap = max(
+        job_profile["experience_years"] - resume_profile["experience_years"],
+        0,
+    )
+    education_gap = max(
+        job_profile["education_rank"] - resume_profile["education_rank"],
+        0,
+    )
+
+    has_minimum_skill_evidence = matched_skill_count >= 1
+    has_viable_skill_coverage = skill_overlap_ratio >= 0.10
+    has_good_skill_coverage = skill_overlap_ratio >= 0.20
+    has_low_missing_ratio = missing_skill_ratio <= 0.90
+
+    has_title_context = (
+        features["title_similarity"] >= 0.08
+    )
+    has_keyword_context = features["keyword_similarity"] >= 0.015
     has_supporting_evidence = (
-        project >= 20
-        or certification >= 20
-        or len(matched_projects) > 0
+        len(matched_projects) > 0
         or len(matched_certifications) > 0
+        or features["project_similarity"] >= 0.20
     )
+    has_contextual_evidence = (
+        has_title_context
+        or has_keyword_context
+        or has_supporting_evidence
+    )
+    has_basic_requirements = education_gap <= 1 and experience_gap <= 3
+    has_flexible_requirements = education_gap <= 1 and experience_gap <= 4
 
-    if has_skill_evidence and has_basic_fit and label_score >= 40:
+    if (
+        has_minimum_skill_evidence
+        and has_viable_skill_coverage
+        and has_basic_requirements
+        and has_contextual_evidence
+        and has_low_missing_ratio
+    ):
         return 1
 
-    if skill >= 25 and experience >= 70 and education >= 60 and overall >= 35:
-        return 1
-
-    if has_skill_evidence and has_supporting_evidence and overall >= 45:
+    if (
+        matched_skill_count >= 2
+        and has_good_skill_coverage
+        and has_flexible_requirements
+        and has_supporting_evidence
+    ):
         return 1
 
     return 0
@@ -752,21 +773,34 @@ def create_row(resume_profile, job_profile, result, retrieval_score, selection_t
     matched_skill_count = len(matched_skills)
     missing_skill_count = len(missing_skills)
     
-    skill_overlap_ratio = round(safe_ratio(matched_skill_count, job_skill_count), 4)
+    skill_overlap_ratio = round(
+        safe_ratio(matched_skill_count, job_skill_count),
+        4,
+    )
 
-    experience_gap = max(job_profile["experience_years"] - resume_profile["experience_years"], 0)
-    education_gap = max(job_profile["education_rank"] - resume_profile["education_rank"], 0)
+    experience_gap = max(
+        job_profile["experience_years"] - resume_profile["experience_years"],
+        0,
+    )
+    education_gap = max(
+        job_profile["education_rank"] - resume_profile["education_rank"],
+        0,
+    )
     
     project_match_count = len(matched_projects)
     certification_match_count = len(matched_certifications)
-    
-    label = create_label(result)
 
     features = retrieval_features(resume_profile, job_profile)
     technical_job_score = calculate_technical_job_score(
         job_profile["title"],
         job_profile["description"],
         job_profile["skills_desc"]
+    )
+    label = create_label(
+        resume_profile,
+        job_profile,
+        result,
+        features,
     )
 
     return {
@@ -784,16 +818,6 @@ def create_row(resume_profile, job_profile, result, retrieval_score, selection_t
         "education_gap": education_gap,
         "project_match_count": project_match_count,
         "certification_match_count": certification_match_count,
-        
-        "skill_score": result.get("skill_score", 0),
-        "education_score": result.get("education_score", 0),
-        "experience_score": result.get("experience_score", 0),
-        "project_score": result.get("project_score", 0),
-        "certification_score": result.get("certification_score", 0),
-        "overall_score": result.get("overall_score", 0),
-        "confidence": result.get("confidence", ""),
-        "recommendation": result.get("recommendation", ""),
-        
         "matched_skills": ", ".join(matched_skills),
         "missing_skills": ", ".join(missing_skills),
         "retrieval_score": round(retrieval_score, 4),
@@ -1070,8 +1094,6 @@ def print_dataset_statistics(df):
     print(f"Total rows            : {total_rows}")
     print(f"Positive labels       : {positive_labels}")
     print(f"Negative labels       : {negative_labels}")
-    print(f"Average overall score : {df['overall_score'].mean():.2f}" if total_rows else "Average overall score : 0.00")
-    print(f"Average skill score   : {df['skill_score'].mean():.2f}" if total_rows else "Average skill score   : 0.00")
     print()
     print("Unique resumes:", df["resume_name"].nunique())
     print("Unique jobs:", df["job_id"].nunique())

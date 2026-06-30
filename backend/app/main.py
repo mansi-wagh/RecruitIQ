@@ -7,7 +7,7 @@ from app.routers.resume import router as resume_router
 from app.routers.job_analyzer import router as job_analyzer_router
 from app.services.resume_information_extractor import ResumeExtractor
 from app.routers.matching import router as matching_router
-
+from app.routers.prediction import router as prediction_router
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="RecruitIQ API"
@@ -18,6 +18,8 @@ app.include_router(job_router)
 app.include_router(resume_router)
 app.include_router(job_analyzer_router)
 app.include_router(matching_router)
+app.include_router(prediction_router)
+
 @app.get("/")
 def home():
 
