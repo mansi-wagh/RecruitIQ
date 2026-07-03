@@ -34,6 +34,9 @@ class JobDescriptionParser:
 
         for alias, info in self.normalizer._skill_map.items():
 
+            if alias not in self.lower_text:
+                continue
+
             pattern = r"\b" + re.escape(alias) + r"\b"
 
             if re.search(pattern, self.lower_text):

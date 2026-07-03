@@ -1,16 +1,20 @@
 from pathlib import Path
 import json
+import sys
 import time
-
-from app.services.resume_parser import parse_resume
-from app.services.resume_information_extractor import ResumeExtractor
-
 
 # ==========================================================
 # PROJECT PATHS
 # ==========================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = PROJECT_ROOT / "backend"
+
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from app.services.resume_parser import parse_resume
+from app.services.resume_information_extractor import ResumeExtractor
 
 # RESUME_FOLDER = (
 #     PROJECT_ROOT
@@ -32,60 +36,72 @@ OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 
 OUTPUT_FILE = OUTPUT_FOLDER / "parsed_resumes.json"
 
+RESUME_SOURCE_ROOT = (
+    PROJECT_ROOT
+    / "dataset"
+    / "Resume_dataset"
+    / "data"
+)
+
+TECHNICAL_RESUME_CATEGORIES = (
+    "ENGINEERING",
+    "INFORMATION-TECHNOLOGY",
+)
+
+DEFAULT_RESUME_LIMIT = 180
+
+
+def resolve_resume_category_folder(category):
+    nested_folder = RESUME_SOURCE_ROOT / "data" / category
+    direct_folder = RESUME_SOURCE_ROOT / category
+
+    if nested_folder.exists():
+        return nested_folder
+
+    return direct_folder
+
+
+def collect_technical_resume_files(limit):
+    category_files = []
+
+    for category in TECHNICAL_RESUME_CATEGORIES:
+        folder = resolve_resume_category_folder(category)
+        files = sorted(folder.rglob("*.pdf")) if folder.exists() else []
+        category_files.append((category, folder, files))
+
+    for category, folder, files in category_files:
+        print(f"{category:<24}: {folder}")
+        print(f"{'':<24}  PDF files: {len(files)}")
+
+    ordered_files = []
+    max_count = max((len(files) for _, _, files in category_files), default=0)
+
+    for index in range(max_count):
+        for category, _, files in category_files:
+            if index < len(files):
+                ordered_files.append((category, files[index]))
+
+            if limit is not None and len(ordered_files) >= limit:
+                return ordered_files
+
+    return ordered_files
+
 
 # ==========================================================
 # LOAD RESUMES
 # ==========================================================
 
-def load_resumes(limit=None):
+def load_resumes(limit=DEFAULT_RESUME_LIMIT):
 
     resumes = []
-
-    engineering = (
-        PROJECT_ROOT
-        / "dataset"
-        / "Resume_dataset"
-        / "data"
-        / "data"
-        / "ENGINEERING"
-    )
-
-    it = (
-        PROJECT_ROOT
-        / "dataset"
-        / "Resume_dataset"
-        / "data"
-        / "data"
-        / "INFORMATION-TECHNOLOGY"
-    )
 
     print("=" * 70)
     print("RecruitIQ Resume Loader")
     print("=" * 70)
 
-    print(f"Engineering Folder : {engineering}")
-    print(f"IT Folder          : {it}")
+    pdf_files = collect_technical_resume_files(limit)
 
-    if not engineering.exists():
-        print("Engineering folder not found.")
-        return resumes
-
-    if not it.exists():
-        print("IT folder not found.")
-        return resumes
-
-    pdf_files = []
-
-    pdf_files.extend(engineering.rglob("*.pdf"))
-    pdf_files.extend(it.rglob("*.pdf"))
-
-    pdf_files = sorted(pdf_files)
-
-    if limit is not None:
-
-        pdf_files = pdf_files[:limit]
-
-    print(f"\nFound {len(pdf_files)} resumes\n")
+    print(f"\nFound {len(pdf_files)} technical resumes\n")
 
     success = 0
 
@@ -93,7 +109,7 @@ def load_resumes(limit=None):
 
     start = time.time()
 
-    for index, pdf in enumerate(pdf_files, start=1):
+    for index, (category, pdf) in enumerate(pdf_files, start=1):
 
         print(f"[{index}/{len(pdf_files)}] {pdf.name}")
 
@@ -110,6 +126,8 @@ def load_resumes(limit=None):
             resume_json = extractor.extract_all()
 
             resume_json["resume_name"] = pdf.name
+
+            resume_json["resume_category"] = category
 
             resumes.append(resume_json)
 
@@ -177,7 +195,7 @@ def save_resumes(resumes):
 # PUBLIC FUNCTION
 # ==========================================================
 
-def build_resume_dataset(limit=None):
+def build_resume_dataset(limit=DEFAULT_RESUME_LIMIT):
 
     resumes = load_resumes(limit)
 
@@ -193,7 +211,7 @@ def build_resume_dataset(limit=None):
 if __name__ == "__main__":
 
     resumes = build_resume_dataset(
-        limit=70
+        limit=DEFAULT_RESUME_LIMIT
     )
 
     print("\n")
