@@ -9,10 +9,20 @@ class Job(Base):
 
     title = Column(String, nullable=False)
 
+    department = Column(String)
+
+    location = Column(String)
+
+    employment_type = Column(String)
+
+    experience_required = Column(String)
+
     description = Column(Text)
 
     required_skills = Column(Text)
 
-    experience_required = Column(Integer)
+    status = Column(String, default="Open")
+
+    applicants = Column(Integer, default=0)
 
     created_by = Column(Integer)

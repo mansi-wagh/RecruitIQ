@@ -1,10 +1,15 @@
-from fastapi import APIRouter, UploadFile, File
-from app.services.resume_parser import parse_resume
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 # from app.services.skill_extractor import extract_skills
 import os
 import shutil
-from app.services.resume_parser import parse_resume
+from uuid import uuid4
 from app.services.resume_information_extractor import ResumeExtractor
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models.resume import Resume
+from app.models.user import User
 
 
 router = APIRouter(
@@ -16,9 +21,35 @@ router = APIRouter(
 @router.post("/upload")
 def upload_resume(
 
-    resume: UploadFile = File(...)
+    resume: UploadFile = File(...),
+
+    candidate_id: int | None = Form(default=None),
+
+    db: Session = Depends(get_db)
 
 ):
+    file_name = os.path.basename(resume.filename or "")
+    extension = os.path.splitext(file_name)[1].lower()
+
+    if extension not in {".pdf", ".docx"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF and DOCX resumes are allowed"
+        )
+
+    candidate = None
+    if candidate_id is not None:
+        candidate = (
+            db.query(User)
+            .filter(User.id == candidate_id, func.lower(User.role) == "candidate")
+            .first()
+        )
+
+        if candidate is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Candidate not found"
+            )
 
     upload_folder = "uploads/resumes"
 
@@ -27,11 +58,13 @@ def upload_resume(
         exist_ok=True
     )
 
+    stored_file_name = f"{uuid4().hex}_{file_name}"
+
     file_path = os.path.join(
 
         upload_folder,
 
-        resume.filename
+        stored_file_name
 
     )
 
@@ -45,16 +78,38 @@ def upload_resume(
 
         )
 
+    if candidate is not None:
+        existing_resume = (
+            db.query(Resume)
+            .filter(Resume.user_id == candidate.id)
+            .first()
+        )
+
+        if existing_resume is None:
+            existing_resume = Resume(
+                user_id=candidate.id,
+                resume_path=file_path
+            )
+            db.add(existing_resume)
+        else:
+            existing_resume.resume_path = file_path
+
+        db.commit()
+        db.refresh(existing_resume)
+
     return {
 
         "message": "Resume uploaded successfully",
 
-        "file_name": resume.filename
+        "file_name": file_name,
+
+        "resume_path": file_path
 
     }
 
 @router.post("/parse")
 def parse_uploaded_resume(filename: str):
+    from app.services.resume_parser import parse_resume
 
     file_path = f"uploads/resumes/{filename}"
 
@@ -69,6 +124,7 @@ def parse_uploaded_resume(filename: str):
 
 @router.post("/extract")
 def extract_resume(filename: str):
+    from app.services.resume_parser import parse_resume
 
     path = f"uploads/resumes/{filename}"
 

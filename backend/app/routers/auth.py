@@ -29,9 +29,10 @@ def register(
     ).first()
 
     if existing_user:
-        return {
-            "message": "Email already registered"
-        }
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+)
 
     # Hash password
     hashed_password = hash_password(user.password)
@@ -69,84 +70,66 @@ def login(
     ).first()
 
     if not existing_user:
-        return {
-            "message": "User not found"
-        }
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+)
 
     # Verify password
     if not verify_password(
         user.password,
         existing_user.password_hash
     ):
-        return {
-            "message": "Invalid password"
-        }
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+)
 
     access_token = create_access_token(
+        {
+            "sub": existing_user.email,
+            "role": existing_user.role,
+        }
+    )
 
-    {
 
-        "sub": existing_user.email,
 
-        "role": existing_user.role
-
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
     }
 
-)
-    return {
-
-        "access_token": access_token,
-
-        "token_type": "bearer"
-
-}
 
 @router.get("/me")
 def current_user(
-
     credentials: HTTPAuthorizationCredentials = Depends(security),
-
     db: Session = Depends(get_db)
-
 ):
-
     token = credentials.credentials
 
     payload = verify_token(token)
 
     if payload is None:
-
-        return {
-            "message": "Invalid Token"
-        }
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token"
+        )
 
     email = payload["sub"]
 
     user = db.query(User).filter(
         User.email == email
     ).first()
-    
-    
-    if payload is None:
-        raise HTTPException(
-        status_code=401,
-        detail="Invalid Token"
-    )
 
     if user is None:
         raise HTTPException(
-        status_code=404,
-        detail="User not found"
-    )
+            status_code=404,
+            detail="User not found"
+        )
 
     return {
-
         "id": user.id,
-
         "name": user.name,
-
         "email": user.email,
-
         "role": user.role
-
     }

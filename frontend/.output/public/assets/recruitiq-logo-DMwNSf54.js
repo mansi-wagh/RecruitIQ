@@ -1,0 +1,1 @@
+var e=`/assets/recruitiq-logo-KB31DFOG.png`;export{e as t};
