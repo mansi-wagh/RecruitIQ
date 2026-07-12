@@ -4,6 +4,8 @@ from typing import List
 from app.database import get_db
 from app.models.job import Job
 from app.schemas.job import JobCreate, JobUpdate, JobResponse
+from app.auth.jwt_handler import get_current_user, get_current_hr
+from app.models.user import User
 
 
 router = APIRouter(
@@ -13,13 +15,20 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[JobResponse])
-def get_jobs(db: Session = Depends(get_db)):
+def get_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     jobs = db.query(Job).all()
     return jobs
 
 
 @router.get("/{job_id}", response_model=JobResponse)
-def get_job(job_id: int, db: Session = Depends(get_db)):
+def get_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     job = db.query(Job).filter(Job.id == job_id).first()
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -27,7 +36,11 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=JobResponse, status_code=201)
-def create_job(job: JobCreate, db: Session = Depends(get_db)):
+def create_job(
+    job: JobCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_hr)
+):
     new_job = Job(
         title=job.title,
         department=job.department,
@@ -38,7 +51,7 @@ def create_job(job: JobCreate, db: Session = Depends(get_db)):
         experience_required=job.experience_required,
         status="Open",
         applicants=0,
-        created_by=1,
+        created_by=current_user.id,
     )
 
     db.add(new_job)
@@ -52,6 +65,7 @@ def update_job(
     job_id: int,
     updated_job: JobUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_hr)
 ):
     job = db.query(Job).filter(Job.id == job_id).first()
     if job is None:
@@ -68,7 +82,11 @@ def update_job(
 
 
 @router.delete("/{job_id}")
-def delete_job(job_id: int, db: Session = Depends(get_db)):
+def delete_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_hr)
+):
     job = db.query(Job).filter(Job.id == job_id).first()
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")

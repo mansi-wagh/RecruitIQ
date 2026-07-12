@@ -1,8 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.schemas.job_analysis import JobAnalysisRequest
 
 from app.services.job_description_parser import JobDescriptionParser
+from app.auth.jwt_handler import get_current_hr
+from app.models.user import User
 
 router = APIRouter(
 
@@ -17,7 +19,9 @@ router = APIRouter(
 
 def analyze_job(
 
-    job: JobAnalysisRequest
+    job: JobAnalysisRequest,
+
+    current_user: User = Depends(get_current_hr)
 
 ):
 

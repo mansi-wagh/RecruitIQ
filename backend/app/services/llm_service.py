@@ -109,3 +109,42 @@ class LLMService:
         )
 
         return self.provider.generate(prompt)
+
+
+    def generate_chat_response(self, query: str) -> dict:
+        """
+        RAG Chat assistant for HR policy queries.
+        """
+        # Retrieve context from ChromaDB
+        retrieved_docs = self.retriever.retrieve(query, top_k=3)
+        
+        if not retrieved_docs:
+            context = "No specific company knowledge documents matched this query."
+        else:
+            context = "\n\n".join(
+                f"[Source: {doc['source']}] (Category: {doc['category']})\n{doc['document']}"
+                for doc in retrieved_docs
+            )
+            
+        prompt = f"""
+You are RecruitIQ HR assistant. You answer recruiter questions regarding company policies, recruitment procedures, guidelines, and interview questions.
+
+Use the following retrieved context passages to answer the user's query. If the context does not contain the answer, say "Based on the company documentation, I couldn't find the answer, but here is what I know: " and answer generally based on your knowledge. Keep the response professional, concise, and structured.
+
+Retrieved Context:
+{context}
+
+User Query:
+{query}
+
+Response:
+"""
+        response_text = self.provider.generate(prompt)
+        
+        # Extract unique sources
+        sources = list(set(doc["source"] for doc in retrieved_docs if doc.get("source")))
+        
+        return {
+            "text": response_text,
+            "sources": sources
+        }

@@ -16,6 +16,25 @@ class DocumentRetriever:
 
         self.db = ChromaDBManager()
 
+        try:
+            if self.db.collection.count() == 0:
+                from app.rag.loader import DocumentLoader
+                from app.rag.chunker import DocumentChunker
+                import os
+                
+                kb_path = "app/data/knowledge_base"
+                if os.path.exists(kb_path):
+                    loader = DocumentLoader(kb_path)
+                    docs = loader.load_documents()
+                    if docs:
+                        chunker = DocumentChunker()
+                        chunks = chunker.split_documents(docs)
+                        if chunks:
+                            embedded = self.embedder.generate_embeddings(chunks)
+                            self.db.add_documents(embedded)
+        except Exception as e:
+            print(f"RAG bootstrap indexing error: {e}")
+
     def retrieve(
         self,
         query: str,

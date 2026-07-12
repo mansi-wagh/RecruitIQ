@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import json
 from pathlib import Path
 
 from app.services.feature_extractor import FeatureExtractor
 from app.services.predictor import Predictor
+from app.auth.jwt_handler import get_current_user
+from app.models.user import User
 
 
 router = APIRouter(
@@ -43,7 +45,8 @@ def load_json(path):
 @router.post("/")
 def predict(
     resume_name: str,
-    job_id: str
+    job_id: str,
+    current_user: User = Depends(get_current_user)
 ):
 
     resumes = load_json(RESUME_FILE)

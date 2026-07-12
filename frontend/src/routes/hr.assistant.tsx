@@ -1,17 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, Sparkles, FileText, User } from "lucide-react";
+import { Bot, Send, Sparkles, FileText, User, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/portal-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import api from "@/lib/api";
 
 export const Route = createFileRoute("/hr/assistant")({
   component: AssistantPage,
 });
 
-interface Msg { id: string; role: "user" | "assistant"; text: string }
+interface Msg {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  sources?: string[];
+}
 
 const suggestions = [
   "What is the interview policy?",
@@ -22,39 +28,64 @@ const suggestions = [
 
 function AssistantPage() {
   const [messages, setMessages] = useState<Msg[]>([
-    { id: "m1", role: "assistant", text: "Hi Alex 👋 I'm your RecruitIQ assistant. Ask about hiring policies, role requirements, or candidate insights." },
+    {
+      id: "m1",
+      role: "assistant",
+      text: "Hi! I'm your RecruitIQ assistant. Ask about company policies, interview procedures, role requirements, or candidate insights.",
+      sources: [],
+    },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [sources, setSources] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
-  const send = (text: string) => {
-    if (!text.trim()) return;
-    const user: Msg = { id: crypto.randomUUID(), role: "user", text };
-    setMessages((m) => [...m, user]);
+  const send = async (text: string) => {
+    if (!text.trim() || typing) return;
+    setError(null);
+    const userMsg: Msg = { id: crypto.randomUUID(), role: "user", text };
+    setMessages((m) => [...m, userMsg]);
     setInput("");
     setTyping(true);
-    setTimeout(() => {
+
+    try {
+      const res = await api.post<{ text: string; sources: string[] }>("/assistant/chat", {
+        query: text,
+      });
+
       setMessages((m) => [
         ...m,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          text:
-            "Based on your company handbook, technical roles follow a 4-stage interview: recruiter screen, technical, system design and hiring manager. Docker and cloud (AWS or GCP) proficiency is recommended for backend positions.",
+          text: res.data.text,
+          sources: res.data.sources,
         },
       ]);
+      setSources(res.data.sources || []);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to get response from assistant. Please try again.");
+    } finally {
       setTyping(false);
-    }, 900);
+    }
   };
 
   return (
     <>
       <PageHeader title="HR Assistant" description="Ask questions about policies, roles, or hiring workflows." />
+
+      {error && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card className="flex h-[calc(100vh-14rem)] flex-col border-border/60 shadow-[var(--shadow-card)]">
@@ -71,7 +102,7 @@ function AssistantPage() {
                 </div>
                 <div
                   className={cn(
-                    "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                    "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line",
                     m.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground",
@@ -98,7 +129,7 @@ function AssistantPage() {
               {suggestions.map((s) => (
                 <button
                   key={s}
-                  onClick={() => send(s)}
+                  onClick={() => void send(s)}
                   className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                 >
                   {s}
@@ -106,20 +137,20 @@ function AssistantPage() {
               ))}
             </div>
             <form
-              onSubmit={(e) => { e.preventDefault(); send(input); }}
+              onSubmit={(e) => { e.preventDefault(); void send(input); }}
               className="flex items-end gap-2"
             >
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); }
                 }}
                 placeholder="Ask about hiring, policies, or a candidate…"
                 className="min-h-[44px] resize-none rounded-xl"
                 rows={1}
               />
-              <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl">
+              <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl" disabled={typing}>
                 <Send className="h-4 w-4" />
               </Button>
             </form>
@@ -137,7 +168,7 @@ function AssistantPage() {
               {suggestions.map((s) => (
                 <button
                   key={s}
-                  onClick={() => send(s)}
+                  onClick={() => void send(s)}
                   className="w-full rounded-lg border border-border/70 p-3 text-left text-sm transition hover:border-primary/40 hover:bg-primary/5"
                 >
                   {s}
@@ -152,16 +183,18 @@ function AssistantPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {[
-                "Employee handbook v3.2",
-                "Interview policy — 2025",
-                "Backend role profile",
-              ].map((s) => (
-                <div key={s} className="rounded-lg border border-border/70 p-2.5 text-xs">
-                  <div className="font-medium">{s}</div>
-                  <div className="text-muted-foreground">Cited in last response</div>
+              {sources.length === 0 ? (
+                <div className="text-xs text-muted-foreground py-2">
+                  No sources cited yet. Ask a question to load source documents.
                 </div>
-              ))}
+              ) : (
+                sources.map((s) => (
+                  <div key={s} className="rounded-lg border border-border/70 p-2.5 text-xs bg-muted/35">
+                    <div className="font-medium text-foreground">{s}</div>
+                    <div className="text-muted-foreground">Cited from knowledge base</div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,1 +1,0 @@
-import{C as e,b as t}from"./button-fk5JW_W0.js";var n=e(t(),1),r=globalThis?.document?n.useLayoutEffect:()=>{};export{r as t};

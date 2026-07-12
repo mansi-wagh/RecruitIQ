@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.resume import Resume
 from app.models.user import User
+from app.auth.jwt_handler import get_current_user
 
 
 router = APIRouter(
@@ -25,9 +26,17 @@ def upload_resume(
 
     candidate_id: int | None = Form(default=None),
 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+
+    current_user: User = Depends(get_current_user)
 
 ):
+    if current_user.role.lower() == "candidate" and candidate_id is not None and candidate_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Candidates can only upload their own resumes"
+        )
+
     file_name = os.path.basename(resume.filename or "")
     extension = os.path.splitext(file_name)[1].lower()
 
@@ -108,7 +117,10 @@ def upload_resume(
     }
 
 @router.post("/parse")
-def parse_uploaded_resume(filename: str):
+def parse_uploaded_resume(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
     from app.services.resume_parser import parse_resume
 
     file_path = f"uploads/resumes/{filename}"
@@ -123,7 +135,10 @@ def parse_uploaded_resume(filename: str):
     }
 
 @router.post("/extract")
-def extract_resume(filename: str):
+def extract_resume(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
     from app.services.resume_parser import parse_resume
 
     path = f"uploads/resumes/{filename}"

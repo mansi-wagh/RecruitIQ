@@ -1,50 +1,129 @@
+# ==========================
 # Python
+# ==========================
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
+.Python
 
-# Virtual Environment
 venv/
 .venv/
 env/
 ENV/
 
-# Environment Variables
-.env
+*.egg-info/
+.eggs/
 
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================
+# Build
+# ==========================
+build/
+dist/
+htmlcov/
+.coverage
+
+# ==========================
+# Logs
+# ==========================
+*.log
+uvicorn.log
+
+# ==========================
+# Environment Variables
+# ==========================
+.env
+.env.*
+!.env.example
+
+backend/.env
+frontend/.env
+
+# ==========================
+# Node / React
+# ==========================
+node_modules/
+frontend/node_modules/
+
+.vite/
+frontend/.vite/
+
+frontend/dist/
+frontend/build/
+frontend/.output/
+frontend/.nitro/
+frontend/.tanstack/
+frontend/.cache/
+
+*.tsbuildinfo
+
+# ==========================
 # IDE
+# ==========================
 .vscode/
 .idea/
 
-# OS Files
+# ==========================
+# OS
+# ==========================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Uploaded Files
-uploads/
+# ==========================
+# Uploads
+# ==========================
 backend/uploads/
+uploads/
 
-# Logs
-*.log
-
-# Database
+# ==========================
+# Databases
+# ==========================
 *.db
+*.sqlite
 *.sqlite3
 
-# Pytest
-.pytest_cache/
+# ==========================
+# ChromaDB
+# ==========================
+backend/chroma_db/
+backend/app/chroma_db/
+backend/app/data/chroma_db/
 
-# Mypy
-.mypy_cache/
+# ==========================
+# HuggingFace Cache
+# ==========================
+.cache/
+.cache/huggingface/
 
-# Build
-build/
-dist/
-*.egg-info/
+# ==========================
+# Docker
+# ==========================
+docker-compose.override.yml
+Dockerfile.local
 
-# Jupyter
-.ipynb_checkpoints/# Dataset
+# ==========================
+# Deployment
+# ==========================
+.vercel/
+.render/
 
+# ==========================
+# Temporary Files
+# ==========================
+*.swp
+*.swo
+*.tmp
 
-# Dataset
+# ==========================
+# Datasets
+# (Ignore raw datasets only)
+# ==========================
 dataset/
+
+# Keep documentation
+!dataset/README.md

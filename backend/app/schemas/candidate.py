@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -23,3 +24,10 @@ class CandidateResponse(BaseModel):
 
 class CandidateDetailResponse(CandidateResponse):
     resumes: list[CandidateResumeResponse] = Field(default_factory=list)
+
+
+class DashboardStats(BaseModel):
+    total_candidates: int
+    total_jobs: int
+    open_jobs: int
+    avg_match_score: Optional[float] = None  # Not stored in DB; reserved for future AI integration
