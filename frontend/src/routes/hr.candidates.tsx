@@ -71,6 +71,25 @@ function CandidatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingAppId, setUpdatingAppId] = useState<number | null>(null);
+
+  const handleStatusChange = async (fullId: string, newStatus: string) => {
+    const parts = fullId.split("_");
+    const appId = parts[1] ? parseInt(parts[1], 10) : 0;
+    if (appId <= 0) return;
+
+    setUpdatingAppId(appId);
+    try {
+      await api.patch(`/applications/${appId}/status`, { status: newStatus });
+      toast.success(`Candidate status updated to ${newStatus}`);
+      void loadCandidates();
+    } catch (err) {
+      console.error("Failed to update status", err);
+      toast.error("Failed to update candidate status");
+    } finally {
+      setUpdatingAppId(null);
+    }
+  };
 
   const handleExportCSV = () => {
     const headers = [
@@ -274,7 +293,35 @@ function CandidatesPage() {
                     <TableCell className="text-sm">{c.role}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.experience}</TableCell>
                     <TableCell><MatchScorePill value={c.matchScore} /></TableCell>
-                    <TableCell><StatusBadge status={c.status} /></TableCell>
+                    <TableCell>
+                      {(() => {
+                        const parts = c.id.split("_");
+                        const appId = parts[1] ? parseInt(parts[1], 10) : 0;
+                        if (appId <= 0) {
+                          return <StatusBadge status={c.status} />;
+                        }
+                        
+                        return updatingAppId === appId ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Select
+                            defaultValue={c.status}
+                            onValueChange={(val) => handleStatusChange(c.id, val)}
+                          >
+                            <SelectTrigger className="h-8 w-28 text-xs font-medium rounded-full border-border/70 capitalize">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Screening">Screening</SelectItem>
+                              <SelectItem value="Interview">Interview</SelectItem>
+                              <SelectItem value="Offer">Offer</SelectItem>
+                              <SelectItem value="Hired">Hired</SelectItem>
+                              <SelectItem value="Rejected">Rejected</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.appliedAt}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1.5">
