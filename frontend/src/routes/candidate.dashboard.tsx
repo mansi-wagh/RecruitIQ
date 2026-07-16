@@ -125,8 +125,6 @@ function CandidateDashboard() {
     (a) => a.status.toLowerCase() === "interview"
   ).length;
 
-  const scores = applications.map((a) => a.match_score).filter((s) => s > 0);
-  const resumeScore = hasResume ? (scores.length > 0 ? Math.max(...scores) : 70) : 0;
 
   return (
     <>
