@@ -7,19 +7,21 @@ from app.llm.prompts import (
     interview_questions_prompt,
     resume_improvement_prompt,
 )
-from app.rag.retriever import DocumentRetriever
-
-
 class LLMService:
     """
     Handles all AI interactions for RecruitIQ.
     """
 
     def __init__(self):
-
         self.provider = ProviderFactory.get_provider()
+        self._retriever = None
 
-        self.retriever = DocumentRetriever()
+    @property
+    def retriever(self):
+        if self._retriever is None:
+            from app.rag.retriever import DocumentRetriever
+            self._retriever = DocumentRetriever()
+        return self._retriever
 
     def _build_context(
         self,
