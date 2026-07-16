@@ -45,6 +45,8 @@ interface Job {
 interface ProfileResponse {
   id: number;
   resumes: { id: number; resume_path: string }[];
+  skills?: string[];
+  experience?: string;
 }
 
 function CandidateDashboard() {
@@ -52,6 +54,7 @@ function CandidateDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([]);
   const [hasResume, setHasResume] = useState(false);
+  const [resumeScore, setResumeScore] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,7 +81,22 @@ function CandidateDashboard() {
         .filter((j) => !appliedJobIds.has(j.id))
         .slice(0, 3);
       setRecommendedJobs(openJobs);
-      setHasResume(profileRes.data.resumes && profileRes.data.resumes.length > 0);
+      
+      const hasRes = profileRes.data.resumes && profileRes.data.resumes.length > 0;
+      setHasResume(hasRes);
+
+      if (hasRes) {
+        let score = 30; // base score for uploading a resume
+        if (profileRes.data.skills && profileRes.data.skills.length > 0) {
+          score += Math.min(profileRes.data.skills.length * 5, 35);
+        }
+        if (profileRes.data.experience && profileRes.data.experience !== "Not provided") {
+          score += 35;
+        }
+        setResumeScore(Math.min(score, 100));
+      } else {
+        setResumeScore(0);
+      }
     } catch (err) {
       console.error("Failed to load dashboard data", err);
     } finally {
@@ -140,7 +158,7 @@ function CandidateDashboard() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard label="Resume score" value={hasResume ? "86" : "N/A"} delta={hasResume ? "Optimized" : "No resume"} icon={FileText} />
+            <KpiCard label="Resume score" value={hasResume ? String(resumeScore) : "N/A"} delta={hasResume ? "Optimized" : "No resume"} icon={FileText} />
             <KpiCard label="Applications" value={String(applications.length)} delta="Total submissions" icon={Briefcase} />
             <KpiCard label="Job matches" value={String(recommendedJobs.length)} delta="Active open postings" icon={Sparkles} />
             <KpiCard label="Interviews" value={String(interviewsCount)} delta="Status updates" icon={Calendar} />

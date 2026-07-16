@@ -14,6 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import api from "@/lib/api";
 
 export const Route = createFileRoute("/hr/candidates/$id")({
@@ -55,6 +63,7 @@ function CandidateDetail() {
   const [candidate, setCandidate] = useState<CandidateDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingAppId, setUpdatingAppId] = useState<number | null>(null);
 
   const loadCandidate = async () => {
     setIsLoading(true);
@@ -69,6 +78,20 @@ function CandidateDetail() {
       setError("Unable to load candidate details. The candidate may not exist.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (appId: number, newStatus: string) => {
+    setUpdatingAppId(appId);
+    try {
+      await api.patch(`/applications/${appId}/status`, { status: newStatus });
+      toast.success(`Application status updated to ${newStatus}`);
+      void loadCandidate();
+    } catch (err) {
+      console.error("Failed to update status", err);
+      toast.error("Failed to update application status");
+    } finally {
+      setUpdatingAppId(null);
     }
   };
 
@@ -311,18 +334,25 @@ function CandidateDetail() {
                         <span className="text-xs font-semibold text-muted-foreground">
                           Match: {app.match_score}%
                         </span>
-                        <Badge
-                          variant={
-                            app.status.toLowerCase() === "hired"
-                              ? "default"
-                              : app.status.toLowerCase() === "rejected"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                          className="rounded-full capitalize"
-                        >
-                          {app.status}
-                        </Badge>
+                        {updatingAppId === app.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Select
+                            defaultValue={app.status}
+                            onValueChange={(val) => handleStatusChange(app.id, val)}
+                          >
+                            <SelectTrigger className="h-8 w-28 text-xs font-medium rounded-full border-border/70 capitalize">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Screening">Screening</SelectItem>
+                              <SelectItem value="Interview">Interview</SelectItem>
+                              <SelectItem value="Offer">Offer</SelectItem>
+                              <SelectItem value="Hired">Hired</SelectItem>
+                              <SelectItem value="Rejected">Rejected</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     </div>
                   ))}
