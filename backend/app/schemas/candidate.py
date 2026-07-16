@@ -22,6 +22,7 @@ class CandidateResponse(BaseModel):
     experience: Optional[str] = "0 yrs"
     applied_at: Optional[str] = "Registered"
     skills: list[str] = Field(default_factory=list)
+    resume_path: Optional[str] = None
 
     model_config = {
         "from_attributes": True

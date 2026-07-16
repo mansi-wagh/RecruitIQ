@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
-import { Filter, Loader2, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Filter, Loader2, Search, Trash2, Download } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/portal-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface CandidateApiResponse {
   experience?: string;
   applied_at?: string;
   skills?: string[];
+  resume_path?: string;
 }
 
 interface Candidate {
@@ -56,6 +58,7 @@ interface Candidate {
   avatarInitials: string;
   skills: string[];
   appliedAt: string;
+  resumePath?: string;
 }
 
 const statuses: (CandidateStatus | "All")[] = ["All", "New", "Screening", "Interview", "Offer", "Hired", "Rejected"];
@@ -69,34 +72,41 @@ function CandidatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const toastId = toast.loading("Importing candidates...");
-
-    try {
-      const response = await api.post("/candidates/import", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success(response.data.message || "Import completed successfully", {
-        id: toastId,
-      });
-      void loadCandidates();
-    } catch (err: any) {
-      console.error("Failed to import CSV", err);
-      const errMsg = err.response?.data?.detail || "An error occurred during import";
-      toast.error(errMsg, { id: toastId });
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  const handleExportCSV = () => {
+    const headers = [
+      "Candidate ID",
+      "Name",
+      "Email",
+      "Applied Role",
+      "Experience Status",
+      "Match Score",
+      "Status",
+      "Applied Date"
+    ];
+    
+    const rows = list.map((c) => [
+      c.candidateId,
+      `"${c.name.replace(/"/g, '""')}"`,
+      c.email,
+      `"${c.role.replace(/"/g, '""')}"`,
+      `"${c.experience.replace(/"/g, '""')}"`,
+      c.matchScore,
+      c.status,
+      c.appliedAt
+    ]);
+    
+    const csvContent = 
+      "data:text/csv;charset=utf-8,\uFEFF" + 
+      [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "recruitiq_candidates_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Candidates CSV exported successfully");
   };
 
   const loadCandidates = async () => {
@@ -163,15 +173,8 @@ function CandidatesPage() {
         description={`${candidates.length} candidates in your pipeline.`}
         actions={
           <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept=".csv"
-              ref={fileInputRef}
-              onChange={handleImportCSV}
-              className="hidden"
-            />
-            <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-              Import CSV
+            <Button size="sm" onClick={handleExportCSV} variant="outline" className="gap-1.5">
+              <Download className="h-3.5 w-3.5" /> Export CSV
             </Button>
           </div>
         }
@@ -274,7 +277,21 @@ function CandidatesPage() {
                     <TableCell><StatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.appliedAt}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1.5">
+                        {c.resumePath && (
+                          <Button asChild size="sm" variant="outline" className="h-8">
+                            <a
+                              href={
+                                (import.meta.env.VITE_API_URL || "http://localhost:8000")
+                                  .replace("/api", "") + "/" + c.resumePath
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Resume
+                            </a>
+                          </Button>
+                        )}
                         <Button asChild size="sm" variant="ghost">
                           <Link to="/hr/candidates/$id" params={{ id: c.candidateId }}>View</Link>
                         </Button>
@@ -327,6 +344,7 @@ function mapCandidate(candidate: CandidateApiResponse): Candidate {
     avatarInitials: getInitials(candidate.name),
     skills: candidate.skills || [],
     appliedAt: candidate.applied_at || "Registered",
+    resumePath: candidate.resume_path,
   };
 }
 

@@ -71,8 +71,22 @@ export function PortalShell({ sidebar, children, userName, userInitials, userRol
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>My account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const isHr = userRole.toLowerCase().includes("hr");
+                    void navigate({ to: isHr ? "/hr/settings" : "/candidate/profile" });
+                  }}
+                >
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const isHr = userRole.toLowerCase().includes("hr");
+                    void navigate({ to: isHr ? "/hr/settings" : "/candidate/profile" });
+                  }}
+                >
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => {
                   localStorage.removeItem("access_token");

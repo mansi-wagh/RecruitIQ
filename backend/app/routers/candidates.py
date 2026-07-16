@@ -88,7 +88,7 @@ def get_candidates(
     response_list = []
 
     for app, u in apps:
-        has_resume = db.query(Resume).filter(Resume.user_id == u.id).first() is not None
+        resume = db.query(Resume).filter(Resume.user_id == u.id).order_by(Resume.id.desc()).first()
         job = db.query(Job).filter(Job.id == app.job_id).first()
         job_title = job.title if job else "Unknown Position"
 
@@ -101,14 +101,15 @@ def get_candidates(
                 role=job_title,
                 status=app.status,
                 match_score=app.match_score,
-                experience="Has Resume" if has_resume else "No Resume",
+                experience="Has Resume" if resume else "No Resume",
                 applied_at=app.applied_at.strftime("%Y-%m-%d"),
-                skills=[]
+                skills=[],
+                resume_path=resume.resume_path if resume else None
             )
         )
 
     for u in non_applied_candidates:
-        has_resume = db.query(Resume).filter(Resume.user_id == u.id).first() is not None
+        resume = db.query(Resume).filter(Resume.user_id == u.id).order_by(Resume.id.desc()).first()
 
         response_list.append(
             CandidateResponse(
@@ -119,9 +120,10 @@ def get_candidates(
                 role="Registered",
                 status="New",
                 match_score=0,
-                experience="Has Resume" if has_resume else "No Resume",
+                experience="Has Resume" if resume else "No Resume",
                 applied_at="Registered",
-                skills=[]
+                skills=[],
+                resume_path=resume.resume_path if resume else None
             )
         )
 
