@@ -223,7 +223,7 @@ def forgot_password(
             detail="User with this email does not exist"
         )
 
-    temp_pass = "Reset123!"
+    temp_pass = "reset1234"
     user.password_hash = hash_password(temp_pass)
     db.commit()
 
