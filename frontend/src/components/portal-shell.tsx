@@ -40,10 +40,20 @@ export function PortalShell({ sidebar, children, userName, userInitials, userRol
           </div>
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative rounded-full">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative rounded-full">
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-center text-xs text-muted-foreground justify-center py-4">
+                  No new notifications
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full p-1 pr-2 text-left transition hover:bg-muted">
@@ -64,7 +74,13 @@ export function PortalShell({ sidebar, children, userName, userInitials, userRol
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => { localStorage.removeItem("access_token"); localStorage.removeItem("user"); navigate({ to: "/" }); }}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => {
+                  localStorage.removeItem("access_token");
+                  localStorage.removeItem("user");
+                  sessionStorage.removeItem("access_token");
+                  sessionStorage.removeItem("user");
+                  navigate({ to: "/" });
+                }}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

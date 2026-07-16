@@ -2,6 +2,7 @@ from typing import List, Dict
 
 from app.rag.embeddings import EmbeddingGenerator
 from app.rag.chroma_db import ChromaDBManager
+from app.logger import logger
 
 
 class DocumentRetriever:
@@ -33,7 +34,7 @@ class DocumentRetriever:
                             embedded = self.embedder.generate_embeddings(chunks)
                             self.db.add_documents(embedded)
         except Exception as e:
-            print(f"RAG bootstrap indexing error: {e}")
+            logger.error("RAG bootstrap indexing error: %s", e, exc_info=True)
 
     def retrieve(
         self,

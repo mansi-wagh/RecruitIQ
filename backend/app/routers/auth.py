@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends,Header
 from sqlalchemy.orm import Session
 from app.auth.jwt_handler import create_access_token
-from app.schemas.user import UserRegister, UserLogin, UserUpdate
+from app.schemas.user import UserRegister, UserLogin, UserUpdate, ForgotPasswordRequest
 from app.auth.security import hash_password, verify_password
 from app.models.user import User
 from app.database import get_db
@@ -208,4 +208,28 @@ def update_profile(
             "email": user.email,
             "role": user.role
         }
-    }
+    }
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == body.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User with this email does not exist"
+        )
+
+    temp_pass = "Reset123!"
+    user.password_hash = hash_password(temp_pass)
+    db.commit()
+
+    return {
+        "message": f"A temporary password has been set. You can now log in using: {temp_pass}. Please change it immediately after logging in."
+    }
+
+
+

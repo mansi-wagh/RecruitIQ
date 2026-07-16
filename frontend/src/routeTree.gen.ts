@@ -28,7 +28,6 @@ import { Route as HrAiAnalysisRouteImport } from './routes/hr.ai-analysis'
 import { Route as CandidateUploadRouteImport } from './routes/candidate.upload'
 import { Route as CandidateProfileRouteImport } from './routes/candidate.profile'
 import { Route as CandidateJobsRouteImport } from './routes/candidate.jobs'
-import { Route as CandidateInterviewPrepRouteImport } from './routes/candidate.interview-prep'
 import { Route as CandidateDashboardRouteImport } from './routes/candidate.dashboard'
 import { Route as CandidateApplicationsRouteImport } from './routes/candidate.applications'
 import { Route as HrCandidatesIdRouteImport } from './routes/hr.candidates.$id'
@@ -128,11 +127,6 @@ const CandidateJobsRoute = CandidateJobsRouteImport.update({
   path: '/jobs',
   getParentRoute: () => CandidateRoute,
 } as any)
-const CandidateInterviewPrepRoute = CandidateInterviewPrepRouteImport.update({
-  id: '/interview-prep',
-  path: '/interview-prep',
-  getParentRoute: () => CandidateRoute,
-} as any)
 const CandidateDashboardRoute = CandidateDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -155,7 +149,6 @@ export interface FileRoutesByFullPath {
   '/hr': typeof HrRouteWithChildren
   '/candidate/applications': typeof CandidateApplicationsRoute
   '/candidate/dashboard': typeof CandidateDashboardRoute
-  '/candidate/interview-prep': typeof CandidateInterviewPrepRoute
   '/candidate/jobs': typeof CandidateJobsRoute
   '/candidate/profile': typeof CandidateProfileRoute
   '/candidate/upload': typeof CandidateUploadRoute
@@ -178,7 +171,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/candidate/applications': typeof CandidateApplicationsRoute
   '/candidate/dashboard': typeof CandidateDashboardRoute
-  '/candidate/interview-prep': typeof CandidateInterviewPrepRoute
   '/candidate/jobs': typeof CandidateJobsRoute
   '/candidate/profile': typeof CandidateProfileRoute
   '/candidate/upload': typeof CandidateUploadRoute
@@ -204,7 +196,6 @@ export interface FileRoutesById {
   '/hr': typeof HrRouteWithChildren
   '/candidate/applications': typeof CandidateApplicationsRoute
   '/candidate/dashboard': typeof CandidateDashboardRoute
-  '/candidate/interview-prep': typeof CandidateInterviewPrepRoute
   '/candidate/jobs': typeof CandidateJobsRoute
   '/candidate/profile': typeof CandidateProfileRoute
   '/candidate/upload': typeof CandidateUploadRoute
@@ -231,7 +222,6 @@ export interface FileRouteTypes {
     | '/hr'
     | '/candidate/applications'
     | '/candidate/dashboard'
-    | '/candidate/interview-prep'
     | '/candidate/jobs'
     | '/candidate/profile'
     | '/candidate/upload'
@@ -254,7 +244,6 @@ export interface FileRouteTypes {
     | '/'
     | '/candidate/applications'
     | '/candidate/dashboard'
-    | '/candidate/interview-prep'
     | '/candidate/jobs'
     | '/candidate/profile'
     | '/candidate/upload'
@@ -279,7 +268,6 @@ export interface FileRouteTypes {
     | '/hr'
     | '/candidate/applications'
     | '/candidate/dashboard'
-    | '/candidate/interview-prep'
     | '/candidate/jobs'
     | '/candidate/profile'
     | '/candidate/upload'
@@ -444,13 +432,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CandidateJobsRouteImport
       parentRoute: typeof CandidateRoute
     }
-    '/candidate/interview-prep': {
-      id: '/candidate/interview-prep'
-      path: '/interview-prep'
-      fullPath: '/candidate/interview-prep'
-      preLoaderRoute: typeof CandidateInterviewPrepRouteImport
-      parentRoute: typeof CandidateRoute
-    }
     '/candidate/dashboard': {
       id: '/candidate/dashboard'
       path: '/dashboard'
@@ -478,7 +459,6 @@ declare module '@tanstack/react-router' {
 interface CandidateRouteChildren {
   CandidateApplicationsRoute: typeof CandidateApplicationsRoute
   CandidateDashboardRoute: typeof CandidateDashboardRoute
-  CandidateInterviewPrepRoute: typeof CandidateInterviewPrepRoute
   CandidateJobsRoute: typeof CandidateJobsRoute
   CandidateProfileRoute: typeof CandidateProfileRoute
   CandidateUploadRoute: typeof CandidateUploadRoute
@@ -488,7 +468,6 @@ interface CandidateRouteChildren {
 const CandidateRouteChildren: CandidateRouteChildren = {
   CandidateApplicationsRoute: CandidateApplicationsRoute,
   CandidateDashboardRoute: CandidateDashboardRoute,
-  CandidateInterviewPrepRoute: CandidateInterviewPrepRoute,
   CandidateJobsRoute: CandidateJobsRoute,
   CandidateProfileRoute: CandidateProfileRoute,
   CandidateUploadRoute: CandidateUploadRoute,

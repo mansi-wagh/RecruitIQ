@@ -130,7 +130,7 @@ function RootComponent() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
     const publicRoutes = [
       "/",
@@ -143,8 +143,9 @@ function RootComponent() {
     const isPublic = publicRoutes.includes(location.pathname);
 
     if (!token && !isPublic) {
+      const isCandidatePath = location.pathname.startsWith("/candidate");
       navigate({
-        to: "/login/hr",
+        to: isCandidatePath ? "/login/candidate" : "/login/hr",
       });
     }
   }, [location.pathname, navigate]);

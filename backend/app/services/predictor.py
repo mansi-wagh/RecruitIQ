@@ -17,12 +17,8 @@ class Predictor:
 
     def __init__(self):
 
-        project_root = Path(__file__).resolve().parents[3]
-
         model_dir = (
-            project_root
-            / "backend"
-            / "app"
+            Path(__file__).resolve().parent.parent
             / "models"
         )
 

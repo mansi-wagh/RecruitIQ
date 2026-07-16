@@ -41,6 +41,24 @@ function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Notifications states
+  const [notifyApplied, setNotifyApplied] = useState(() => {
+    return localStorage.getItem("notify_applied") !== "false";
+  });
+  const [notifyReady, setNotifyReady] = useState(() => {
+    return localStorage.getItem("notify_ready") !== "false";
+  });
+  const [notifyWeekly, setNotifyWeekly] = useState(() => {
+    return localStorage.getItem("notify_weekly") === "true";
+  });
+
+  const handleSaveNotifications = () => {
+    localStorage.setItem("notify_applied", String(notifyApplied));
+    localStorage.setItem("notify_ready", String(notifyReady));
+    localStorage.setItem("notify_weekly", String(notifyWeekly));
+    toast.success("Notification preferences saved successfully");
+  };
+
   const loadProfile = async () => {
     setLoading(true);
     try {
@@ -154,7 +172,6 @@ function SettingsPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="theme">Theme</TabsTrigger>
         </TabsList>
 
         {/* PROFILE TAB */}
@@ -225,33 +242,26 @@ function SettingsPage() {
         {/* NOTIFICATIONS TAB */}
         <TabsContent value="notifications">
           <SectionCard title="Email notifications" description="Choose what notifications you want to receive.">
-            <ToggleRow label="New candidate applied" defaultChecked description="Alert when a new candidate applies." />
-            <ToggleRow label="AI recommendation ready" defaultChecked description="Notify when a shortlist is ready." />
-            <ToggleRow label="Weekly digest" description="A summary of activity every Monday." />
+            <ToggleRow
+              label="New candidate applied"
+              checked={notifyApplied}
+              onCheckedChange={setNotifyApplied}
+              description="Alert when a new candidate applies."
+            />
+            <ToggleRow
+              label="AI recommendation ready"
+              checked={notifyReady}
+              onCheckedChange={setNotifyReady}
+              description="Notify when a shortlist is ready."
+            />
+            <ToggleRow
+              label="Weekly digest"
+              checked={notifyWeekly}
+              onCheckedChange={setNotifyWeekly}
+              description="A summary of activity every Monday."
+            />
             <div className="flex justify-end gap-2 border-t border-border/70 pt-4">
-              <Button onClick={() => toast.success("Notification preferences updated")}>Save changes</Button>
-            </div>
-          </SectionCard>
-        </TabsContent>
-
-        {/* THEME TAB */}
-        <TabsContent value="theme">
-          <SectionCard title="Appearance" description="Personalize how RecruitIQ looks.">
-            <div className="grid gap-4 sm:max-w-sm">
-              <div className="space-y-1.5">
-                <Label>Theme</Label>
-                <Select defaultValue="light">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 border-t border-border/70 pt-4">
-              <Button onClick={() => toast.success("Theme preference updated")}>Save changes</Button>
+              <Button onClick={handleSaveNotifications}>Save changes</Button>
             </div>
           </SectionCard>
         </TabsContent>
@@ -272,14 +282,24 @@ function SectionCard({ title, description, children }: { title: string; descript
   );
 }
 
-function ToggleRow({ label, description, defaultChecked }: { label: string; description?: string; defaultChecked?: boolean }) {
+function ToggleRow({
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border/70 p-4">
       <div>
         <div className="text-sm font-medium">{label}</div>
         {description ? <div className="text-xs text-muted-foreground">{description}</div> : null}
       </div>
-      <Switch defaultChecked={defaultChecked} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }

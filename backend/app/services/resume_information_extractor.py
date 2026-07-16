@@ -55,14 +55,11 @@ class ResumeExtractor:
 
     def extract_skills(self):
 
-        project_root = Path(__file__).resolve().parents[3]
-
         skills_file = (
-            project_root
-            / "dataset"
-            / "skills"
+            Path(__file__).resolve().parent.parent
+            / "data"
             / "skills.csv"
-    )
+        )
 
         skills_df = pd.read_csv(skills_file)
 

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-# from app.services.skill_extractor import extract_skills
 import os
 import shutil
 from uuid import uuid4
@@ -75,7 +74,7 @@ def upload_resume(
 
         stored_file_name
 
-    )
+    ).replace("\\", "/")
 
     with open(file_path, "wb") as buffer:
 
@@ -116,39 +115,32 @@ def upload_resume(
 
     }
 
-@router.post("/parse")
-def parse_uploaded_resume(
-    filename: str,
-    current_user: User = Depends(get_current_user)
-):
-    from app.services.resume_parser import parse_resume
-
-    file_path = f"uploads/resumes/{filename}"
-
-    resume_text = parse_resume(file_path)
-
-    skills = extract_skills(resume_text)
-
-    return {
-        "filename": filename,
-        "skills": skills
-    }
-
 @router.post("/extract")
 def extract_resume(
     filename: str,
     current_user: User = Depends(get_current_user)
 ):
+    # Make sure filename is safe
+    safe_name = os.path.basename(filename)
+    if safe_name != filename or ".." in filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid filename"
+        )
+
     from app.services.resume_parser import parse_resume
 
-    path = f"uploads/resumes/{filename}"
+    path = os.path.join("uploads", "resumes", safe_name)
+
+    if not os.path.exists(path):
+        raise HTTPException(
+            status_code=404,
+            detail="Resume file not found"
+        )
 
     resume_text = parse_resume(path)
 
-    extractor = ResumeExtractor(
-
-        resume_text
-
-    )
+    extractor = ResumeExtractor(resume_text)
 
     return extractor.extract_all()
+

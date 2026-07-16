@@ -646,7 +646,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
 
-  const value = localStorage.getItem("user");
+  const value = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!value) return null;
 
   try {

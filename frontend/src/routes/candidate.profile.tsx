@@ -166,7 +166,7 @@ function Field({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> 
 function getStoredUser() {
   if (typeof window === "undefined") return null;
 
-  const value = localStorage.getItem("user");
+  const value = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!value) return null;
 
   try {

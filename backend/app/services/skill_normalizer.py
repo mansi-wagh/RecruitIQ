@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.logger import logger
+
 
 class SkillNormalizer:
 
@@ -19,16 +21,13 @@ class SkillNormalizer:
 
         skill_map = {}
 
-        project_root = Path(__file__).resolve().parents[3]
-
         skills_file = (
-            project_root
-            / "dataset"
-            / "skills"
+            Path(__file__).resolve().parent.parent
+            / "data"
             / "skills.csv"
         )
 
-        print(f"Loading skills from: {skills_file}")
+        logger.debug("Loading skills from: %s", skills_file)
 
         df = pd.read_csv(skills_file)
 
@@ -61,7 +60,7 @@ class SkillNormalizer:
                             "category": category
                         }
 
-        print(f"Loaded {len(skill_map)} skill aliases")
+        logger.info("Loaded %d skill aliases", len(skill_map))
 
         return skill_map
 

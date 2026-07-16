@@ -16,10 +16,12 @@ router = APIRouter(
 
 @router.get("/", response_model=List[JobResponse])
 def get_jobs(
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    jobs = db.query(Job).all()
+    jobs = db.query(Job).offset(skip).limit(limit).all()
     return jobs
 
 

@@ -1,5 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class Job(Base):
 
@@ -25,4 +29,11 @@ class Job(Base):
 
     applicants = Column(Integer, default=0)
 
-    created_by = Column(Integer)
+    created_by = Column(Integer, ForeignKey("users.id"))
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    creator = relationship("User", back_populates="created_jobs")
+    job_applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")

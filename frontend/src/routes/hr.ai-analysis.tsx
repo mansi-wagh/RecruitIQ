@@ -179,14 +179,13 @@ function AIAnalysisPage() {
                     <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
                   </span>
                 ) : (
-                  <SelectValue placeholder="Select resume" />
+                  <SelectValue placeholder="Select candidate" />
                 )}
               </SelectTrigger>
               <SelectContent className="max-h-64">
                 {resumes.map((r) => (
                   <SelectItem key={r.resume_name} value={r.resume_name}>
-                    {r.resume_name}
-                    {r.resume_category ? ` · ${r.resume_category}` : ""}
+                    {r.resume_category || "Candidate"} (ID: #{r.resume_name})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -281,11 +280,8 @@ function AIAnalysisPage() {
             <Card className="border-border/60 bg-muted/20 shadow-[var(--shadow-card)] lg:col-span-3">
               <CardContent className="flex flex-wrap items-center gap-3 py-3 text-xs text-muted-foreground">
                 <span>
-                  <strong className="font-medium text-foreground">Resume:</strong>{" "}
-                  {selectedResumeMeta?.resume_name}
-                  {selectedResumeMeta?.resume_category
-                    ? ` (${selectedResumeMeta.resume_category})`
-                    : ""}
+                  <strong className="font-medium text-foreground">Candidate:</strong>{" "}
+                  {selectedResumeMeta?.resume_category || "Candidate"} (ID: #{selectedResumeMeta?.resume_name})
                 </span>
                 <span className="opacity-40">·</span>
                 <span>

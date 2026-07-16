@@ -85,7 +85,7 @@ function ReportsPage() {
         >
           {data && (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.applicants_per_job} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={data.applicants_per_job} margin={{ top: 10, right: 10, left: 0, bottom: 30 }}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
@@ -93,7 +93,16 @@ function ReportsPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="title" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                <XAxis
+                  dataKey="title"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  height={50}
+                />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                 <Tooltip contentStyle={{ borderRadius: 8, borderColor: "var(--border)", fontSize: 12 }} />
                 <Area type="monotone" dataKey="applicants" stroke="var(--primary)" strokeWidth={2} fill="url(#g1)" />
@@ -111,12 +120,25 @@ function ReportsPage() {
         >
           {data && (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.jobs_by_department} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <BarChart data={data.jobs_by_department} margin={{ top: 10, right: 10, left: 0, bottom: 35 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="department" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                <XAxis
+                  dataKey="department"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                  height={40}
+                />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                 <Tooltip contentStyle={{ borderRadius: 8, borderColor: "var(--border)", fontSize: 12 }} />
-                <Bar dataKey="value" name="Jobs count" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" name="Jobs count" radius={[6, 6, 0, 0]}>
+                  {data.jobs_by_department.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -136,7 +158,11 @@ function ReportsPage() {
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                 <YAxis type="category" dataKey="skill" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} />
                 <Tooltip contentStyle={{ borderRadius: 8, borderColor: "var(--border)", fontSize: 12 }} />
-                <Bar dataKey="value" name="Skill frequency" fill="var(--primary)" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="value" name="Skill frequency" radius={[0, 6, 6, 0]}>
+                  {data.skill_distribution.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}

@@ -27,3 +27,11 @@ class CandidateApplicationResponse(BaseModel):
     status: str
     match_score: int
     applied_at: datetime
+    candidate_id: Optional[int] = None
+    candidate_name: Optional[str] = None
+    candidate_email: Optional[str] = None
+
+
+class ApplicationStatusUpdate(BaseModel):
+    status: str
+

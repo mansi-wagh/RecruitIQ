@@ -72,7 +72,7 @@ function Dashboard() {
 
   // ── Restore logged-in user from localStorage ───────────────────────────────
   useEffect(() => {
-    const stored = localStorage.getItem("user");
+    const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (stored) {
       setLoggedInUser(JSON.parse(stored));
     }

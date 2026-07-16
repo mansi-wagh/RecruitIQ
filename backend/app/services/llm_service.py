@@ -47,68 +47,71 @@ class LLMService:
         resume: Dict,
         prediction: Dict,
     ) -> str:
-
-        context = self._build_context(
-            "candidate hiring policy"
-        )
-
-        prompt = candidate_summary_prompt(
-            resume,
-            prediction,
-            context,
-        )
-
-        return self.provider.generate(prompt)
+        context = self._build_context("candidate hiring policy")
+        prompt = candidate_summary_prompt(resume, prediction, context)
+        raw_response = self.provider.generate(prompt, response_mime_type="application/json")
+        try:
+            import json
+            data = json.loads(raw_response)
+            summary = data.get("candidate_summary", "")
+            strengths = "\n".join(f"- {s}" for s in data.get("strengths", []))
+            weaknesses = "\n".join(f"- {w}" for w in data.get("weaknesses", []))
+            rec = data.get("hiring_recommendation", "")
+            return f"{summary}\n\n**Key Strengths**:\n{strengths}\n\n**Areas for Growth**:\n{weaknesses}\n\n**Recommendation**:\n{rec}"
+        except Exception:
+            return raw_response
 
     def generate_skill_gap(
         self,
         matched_skills: List[str],
         missing_skills: List[str],
     ) -> str:
-
-        context = self._build_context(
-            "skill gap policy"
-        )
-
-        prompt = skill_gap_prompt(
-            matched_skills,
-            missing_skills,
-            context,
-        )
-
-        return self.provider.generate(prompt)
+        context = self._build_context("skill gap policy")
+        prompt = skill_gap_prompt(matched_skills, missing_skills, context)
+        raw_response = self.provider.generate(prompt, response_mime_type="application/json")
+        try:
+            import json
+            data = json.loads(raw_response)
+            strengths = data.get("strengths_analysis", "")
+            weaknesses = data.get("weaknesses_analysis", "")
+            roadmap = "\n".join(f"- {step}" for step in data.get("learning_roadmap", []))
+            return f"**Current Competencies**:\n{strengths}\n\n**Skill Gap Analysis**:\n{weaknesses}\n\n**Upskilling Roadmap**:\n{roadmap}"
+        except Exception:
+            return raw_response
 
     def generate_interview_questions(
         self,
         missing_skills: List[str],
     ) -> str:
-
-        context = self._build_context(
-            "technical interview guide"
-        )
-
-        prompt = interview_questions_prompt(
-            missing_skills,
-            context,
-        )
-
-        return self.provider.generate(prompt)
+        context = self._build_context("technical interview guide")
+        prompt = interview_questions_prompt(missing_skills, context)
+        raw_response = self.provider.generate(prompt, response_mime_type="application/json")
+        try:
+            import json
+            data = json.loads(raw_response)
+            questions_list = []
+            for i, q in enumerate(data.get("questions", []), 1):
+                skill_name = q.get("skill", "")
+                question_text = q.get("question", "")
+                questions_list.append(f"{i}. **{skill_name.title()}**: {question_text}")
+            return "\n".join(questions_list)
+        except Exception:
+            return raw_response
 
     def generate_resume_suggestions(
         self,
         missing_skills: List[str],
     ) -> str:
-
-        context = self._build_context(
-            "resume writing guideline"
-        )
-
-        prompt = resume_improvement_prompt(
-            missing_skills,
-            context,
-        )
-
-        return self.provider.generate(prompt)
+        context = self._build_context("resume writing guideline")
+        prompt = resume_improvement_prompt(missing_skills, context)
+        raw_response = self.provider.generate(prompt, response_mime_type="application/json")
+        try:
+            import json
+            data = json.loads(raw_response)
+            suggestions = "\n".join(f"- {s}" for s in data.get("suggestions", []))
+            return suggestions
+        except Exception:
+            return raw_response
 
 
     def generate_chat_response(self, query: str) -> dict:

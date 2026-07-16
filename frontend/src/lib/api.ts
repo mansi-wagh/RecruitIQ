@@ -9,7 +9,7 @@ const api = axios.create({
 
 // Add JWT automatically
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("access_token") || sessionStorage.getItem("access_token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -30,9 +30,21 @@ api.interceptors.response.use(
       url.includes("/auth/me");
 
     if (error.response?.status === 401 && !isAuthEndpoint) {
+      let isHr = window.location.pathname.includes("/hr");
+      try {
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          isHr = user?.role === "hr";
+        }
+      } catch (err) {
+        console.error("Failed to parse stored user", err);
+      }
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
-      window.location.href = "/login/hr";
+      sessionStorage.removeItem("access_token");
+      sessionStorage.removeItem("user");
+      window.location.href = isHr ? "/login/hr" : "/login/candidate";
     }
 
     return Promise.reject(error);

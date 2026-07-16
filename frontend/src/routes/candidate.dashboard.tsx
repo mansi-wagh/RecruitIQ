@@ -55,7 +55,7 @@ function CandidateDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
+    const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (stored) {
       setCurrentUser(JSON.parse(stored));
     }
@@ -107,7 +107,8 @@ function CandidateDashboard() {
     (a) => a.status.toLowerCase() === "interview"
   ).length;
 
-  const resumeScore = hasResume ? 86 : 0;
+  const scores = applications.map((a) => a.match_score).filter((s) => s > 0);
+  const resumeScore = hasResume ? (scores.length > 0 ? Math.max(...scores) : 70) : 0;
 
   return (
     <>

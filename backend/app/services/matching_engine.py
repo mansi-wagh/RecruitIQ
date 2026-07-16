@@ -46,6 +46,8 @@ class MatchingEngine:
     # -----------------------------
 
     def education_matching(self):
+        from app.services.feature_extractor import FeatureExtractor
+
         resume_education = " ".join(
             self.resume.get("education", [])
         ).lower()
@@ -54,43 +56,16 @@ class MatchingEngine:
             self.job.get("education", "")
         ).lower()
 
-        education_rank = {
-            "phd": 5,
-            "doctorate": 5,
-
-            "master": 4,
-            "m.tech": 4,
-            "mtech": 4,
-            "m.e": 4,
-            "mca": 4,
-
-            "b.tech": 3,
-            "btech": 3,
-            "bachelor": 3,
-            "b.e": 3,
-            "be": 3,
-
-            "diploma": 2,
-
-            "12th": 1
-        }
-
         resume_level = 0
         job_level = 0
 
-        for key, value in education_rank.items():
+        for key, value in FeatureExtractor.EDUCATION_RANKS.items():
             if key in resume_education:
-                resume_level = max(
-                    resume_level,
-                    value
-                )
+                resume_level = max(resume_level, value)
 
-        for key, value in education_rank.items():
+        for key, value in FeatureExtractor.EDUCATION_RANKS.items():
             if key in job_education:
-                job_level = max(
-                    job_level,
-                    value
-                )
+                job_level = max(job_level, value)
 
         if job_level == 0:
             return 100

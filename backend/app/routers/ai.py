@@ -172,7 +172,7 @@ def analyze(
     matcher = MatchingEngine(resume_dict, job_dict)
     match = matcher.match()
 
-    features = feature_extractor.extract(resume_dict, job_dict)
+    features = feature_extractor.extract(resume_dict, job_dict, precomputed_match=match)
     prediction = predictor.predict(features)
 
     candidate_summary = llm_service.generate_candidate_summary(resume_dict, prediction)

@@ -27,7 +27,6 @@ const items = [
   { title: "Upload Resume", url: "/candidate/upload", icon: Upload },
   { title: "Recommended Jobs", url: "/candidate/jobs", icon: Sparkles },
   { title: "Applications", url: "/candidate/applications", icon: FileText },
-  { title: "Interview Prep", url: "/candidate/interview-prep", icon: GraduationCap },
   { title: "Profile", url: "/candidate/profile", icon: User },
 ];
 

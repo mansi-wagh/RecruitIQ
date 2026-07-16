@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Filter, Loader2, Search, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/portal-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,19 +31,26 @@ export const Route = createFileRoute("/hr/candidates")({
 type CandidateStatus = "New" | "Screening" | "Interview" | "Offer" | "Hired" | "Rejected";
 
 interface CandidateApiResponse {
-  id: number;
+  id: string;
+  candidate_id: number;
   name: string;
   email: string;
   role: string;
+  status?: string;
+  match_score?: number;
+  experience?: string;
+  applied_at?: string;
+  skills?: string[];
 }
 
 interface Candidate {
   id: string;
+  candidateId: string;
   name: string;
   email: string;
   role: string;
   location: string;
-  experience: number;
+  experience: string;
   matchScore: number;
   status: CandidateStatus;
   avatarInitials: string;
@@ -61,6 +68,36 @@ function CandidatesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const toastId = toast.loading("Importing candidates...");
+
+    try {
+      const response = await api.post("/candidates/import", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      toast.success(response.data.message || "Import completed successfully", {
+        id: toastId,
+      });
+      void loadCandidates();
+    } catch (err: any) {
+      console.error("Failed to import CSV", err);
+      const errMsg = err.response?.data?.detail || "An error occurred during import";
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const loadCandidates = async () => {
     setIsLoading(true);
@@ -81,16 +118,25 @@ function CandidatesPage() {
     void loadCandidates();
   }, []);
 
-  const deleteCandidate = async (candidateId: string) => {
-    setDeletingId(candidateId);
+  const handleDeleteRow = async (c: Candidate) => {
+    setDeletingId(c.id);
     setError(null);
 
     try {
-      await api.delete(`/candidates/${candidateId}`);
+      const parts = c.id.split("_");
+      const appId = parts[1] ? parseInt(parts[1], 10) : 0;
+
+      if (appId > 0) {
+        await api.delete(`/applications/${appId}`);
+        toast.success("Application withdrawn successfully");
+      } else {
+        await api.delete(`/candidates/${c.candidateId}`);
+        toast.success("Candidate profile deleted successfully");
+      }
       await loadCandidates();
     } catch (err) {
-      console.error("Failed to delete candidate", err);
-      setError("Unable to delete candidate. Please try again.");
+      console.error("Failed to delete row", err);
+      setError("Unable to delete item. Please try again.");
     } finally {
       setDeletingId(null);
     }
@@ -115,7 +161,20 @@ function CandidatesPage() {
       <PageHeader
         title="Candidates"
         description={`${candidates.length} candidates in your pipeline.`}
-        actions={<Button size="sm">Import CSV</Button>}
+        actions={
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept=".csv"
+              ref={fileInputRef}
+              onChange={handleImportCSV}
+              className="hidden"
+            />
+            <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+              Import CSV
+            </Button>
+          </div>
+        }
       />
 
       <Card className="border-border/60 shadow-[var(--shadow-card)]">
@@ -210,14 +269,14 @@ function CandidatesPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">{c.role}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{c.experience} yrs</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{c.experience}</TableCell>
                     <TableCell><MatchScorePill value={c.matchScore} /></TableCell>
                     <TableCell><StatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.appliedAt}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button asChild size="sm" variant="ghost">
-                          <Link to="/hr/candidates/$id" params={{ id: c.id }}>View</Link>
+                          <Link to="/hr/candidates/$id" params={{ id: c.candidateId }}>View</Link>
                         </Button>
                         <Button
                           size="icon"
@@ -225,7 +284,7 @@ function CandidatesPage() {
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           disabled={deletingId === c.id}
                           aria-label={`Delete ${c.name}`}
-                          onClick={() => void deleteCandidate(c.id)}
+                          onClick={() => void handleDeleteRow(c)}
                         >
                           {deletingId === c.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -256,17 +315,18 @@ function CandidatesPage() {
 
 function mapCandidate(candidate: CandidateApiResponse): Candidate {
   return {
-    id: String(candidate.id),
+    id: candidate.id,
+    candidateId: String(candidate.candidate_id),
     name: candidate.name,
     email: candidate.email,
-    role: "Candidate",
+    role: candidate.role || "Candidate",
     location: "Not provided",
-    experience: 0,
-    matchScore: 0,
-    status: "New",
+    experience: candidate.experience || "No Resume",
+    matchScore: candidate.match_score ?? 0,
+    status: (candidate.status || "New") as CandidateStatus,
     avatarInitials: getInitials(candidate.name),
-    skills: [],
-    appliedAt: "Registered",
+    skills: candidate.skills || [],
+    appliedAt: candidate.applied_at || "Registered",
   };
 }
 

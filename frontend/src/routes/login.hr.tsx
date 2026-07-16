@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/login/hr")({
   component: () => (
@@ -54,6 +62,37 @@ export function AuthLayout({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [rememberMe, setRememberMe] = useState(true);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const response = await api.post("/auth/forgot-password", {
+        email: forgotEmail,
+      });
+      toast.success(response.data.message || "Password reset successfully", { duration: 8000 });
+      setIsForgotOpen(false);
+      setForgotEmail("");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.detail || "Failed to reset password");
+      } else {
+        toast.error("An unexpected error occurred");
+      }
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -73,8 +112,14 @@ export function AuthLayout({
         return;
       }
 
-      // Store JWT
-      localStorage.setItem("access_token", token);
+      // Store JWT based on rememberMe selection
+      if (rememberMe) {
+        localStorage.setItem("access_token", token);
+        sessionStorage.removeItem("access_token");
+      } else {
+        sessionStorage.setItem("access_token", token);
+        localStorage.removeItem("access_token");
+      }
 
       // Fetch current user
       let user;
@@ -83,6 +128,7 @@ export function AuthLayout({
         user = userResponse.data;
       } catch {
         localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         toast.error("Login succeeded but failed to load user profile");
         return;
       }
@@ -90,19 +136,24 @@ export function AuthLayout({
       if (loginAs === "hr" && user.role === "candidate") {
         toast.error("This account is a candidate account.");
         localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         return;
       }
 
       if (loginAs === "candidate" && user.role !== "candidate") {
         toast.error("This account is not a candidate account.");
         localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         return;
       }
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(user)
-      );
+      if (rememberMe) {
+        localStorage.setItem("user", JSON.stringify(user));
+        sessionStorage.removeItem("user");
+      } else {
+        sessionStorage.setItem("user", JSON.stringify(user));
+        localStorage.removeItem("user");
+      }
 
       toast.success("Login successful");
 
@@ -147,19 +198,59 @@ export function AuthLayout({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <button type="button" className="text-xs font-medium text-primary hover:underline">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={() => setIsForgotOpen(true)}
+                >
                   Forgot password?
                 </button>
               </div>
               <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Checkbox defaultChecked /> Remember me for 30 days
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+              /> Remember me for 30 days
             </label>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in…" : ctaLabel}
             </Button>
           </form>
+
+          <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Reset your password</DialogTitle>
+                <DialogDescription>
+                  Enter your email address and we'll reset your password to a temporary fallback.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="forgot-email">Email address</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <DialogFooter className="sm:justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setIsForgotOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={forgotLoading}>
+                    {forgotLoading ? "Resetting…" : "Reset Password"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             {footerText}{" "}
@@ -194,20 +285,20 @@ function HRIllustration() {
           <div className="h-2 w-2 rounded-full bg-white/30" />
           <div className="ml-auto">recruitiq.io/hr</div>
         </div>
-        <div className="mt-5 text-lg font-semibold">Today's shortlist</div>
+        <div className="mt-5 text-lg font-semibold">Workspace Overview</div>
         <div className="mt-4 space-y-3">
           {[
-            { name: "Aarav Sharma", role: "Sr. Backend", score: 94 },
-            { name: "Priya Nair", role: "Data Scientist", score: 91 },
-            { name: "Sofia Martinez", role: "Product Designer", score: 88 },
+            { metric: "Active Pipelines", value: "12 active roles" },
+            { metric: "Total Applicants", value: "Over 1,200 submissions" },
+            { metric: "AI Shortlisting", value: "Automated screening active" },
           ].map((c) => (
-            <div key={c.name} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+            <div key={c.metric} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
               <div>
-                <div className="text-sm font-medium">{c.name}</div>
-                <div className="text-xs text-white/60">{c.role}</div>
+                <div className="text-sm font-medium">{c.metric}</div>
+                <div className="text-xs text-white/60">{c.value}</div>
               </div>
               <div className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
-                {c.score}% match
+                Online
               </div>
             </div>
           ))}
@@ -215,9 +306,9 @@ function HRIllustration() {
       </div>
       <div className="mt-6 grid grid-cols-3 gap-3">
         {[
-          { icon: Users, label: "1,284 candidates" },
-          { icon: Sparkles, label: "AI screening" },
-          { icon: ShieldCheck, label: "SOC 2 ready" },
+          { icon: Users, label: "Candidate CRM" },
+          { icon: Sparkles, label: "AI Screening" },
+          { icon: ShieldCheck, label: "Secure Data" },
         ].map(({ icon: Icon, label }) => (
           <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/80">
             <Icon className="mb-2 h-4 w-4 text-primary" />
@@ -238,16 +329,15 @@ export function CandidateIllustration() {
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-medium">Your resume score</div>
-            <div className="text-xs text-white/60">Updated 2 minutes ago</div>
+            <div className="text-sm font-medium">Candidate Dashboard</div>
+            <div className="text-xs text-white/60">Manage your career applications</div>
           </div>
-          <div className="ml-auto text-2xl font-semibold">86</div>
         </div>
         <div className="mt-5 space-y-3">
           {[
-            { title: "Senior Product Designer", company: "Linear", match: 91 },
-            { title: "Frontend Engineer", company: "Stripe", match: 84 },
-            { title: "Design Systems Lead", company: "Notion", match: 96 },
+            { title: "Dynamic Match Scoring", info: "Instant comparison with job requirements" },
+            { title: "One-Click Apply", info: "Submit stored resume in seconds" },
+            { title: "Application Tracker", info: "Real-time updates from HR hiring teams" },
           ].map((j) => (
             <div key={j.title} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
               <div className="grid h-8 w-8 place-items-center rounded-md bg-white/10">
@@ -255,10 +345,7 @@ export function CandidateIllustration() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{j.title}</div>
-                <div className="text-xs text-white/60">{j.company}</div>
-              </div>
-              <div className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
-                {j.match}%
+                <div className="text-xs text-white/60">{j.info}</div>
               </div>
             </div>
           ))}

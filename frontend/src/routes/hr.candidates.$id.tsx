@@ -29,12 +29,23 @@ interface CandidateResume {
   resume_path: string;
 }
 
+interface CandidateApplication {
+  id: number;
+  job_id: number;
+  job_title: string;
+  company: string;
+  status: string;
+  match_score: number;
+  applied_at: string;
+}
+
 interface CandidateDetailResponse {
   id: number;
   name: string;
   email: string;
   role: string;
   resumes: CandidateResume[];
+  applications: CandidateApplication[];
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -207,7 +218,17 @@ function CandidateDetail() {
                         </div>
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium">
-                            {fileNameFromPath(resume.resume_path)}
+                            <a
+                              href={
+                                (import.meta.env.VITE_API_URL || "http://localhost:8000")
+                                  .replace("/api", "") + "/" + resume.resume_path
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-primary hover:underline"
+                            >
+                              {fileNameFromPath(resume.resume_path)}
+                            </a>
                           </div>
                           <div className="truncate text-xs text-muted-foreground">
                             {resume.resume_path}
@@ -220,9 +241,88 @@ function CandidateDetail() {
                         <Badge variant="outline" className="rounded-full font-mono text-xs">
                           #{resume.id}
                         </Badge>
+                        <Button asChild size="sm" variant="ghost" className="h-7 text-xs text-primary">
+                          <a
+                            href={
+                              (import.meta.env.VITE_API_URL || "http://localhost:8000")
+                                .replace("/api", "") + "/" + resume.resume_path
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View
+                          </a>
+                        </Button>
+                        <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                          <a
+                            href={
+                              (import.meta.env.VITE_API_URL || "http://localhost:8000")
+                                .replace("/api", "") + "/" + resume.resume_path
+                            }
+                            download
+                          >
+                            Download
+                          </a>
+                        </Button>
                         <span className="text-xs text-muted-foreground">
                           Resume {index + 1} of {candidate.resumes.length}
                         </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Applied Jobs card ── */}
+          <Card className="border-border/60 shadow-[var(--shadow-card)] lg:col-span-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Applied jobs history
+                {candidate.applications && candidate.applications.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 rounded-full px-2 py-0 text-xs">
+                    {candidate.applications.length}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!candidate.applications || candidate.applications.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+                  <ShieldCheck className="h-8 w-8 opacity-30" />
+                  <p>This candidate has not applied to any jobs yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/70 rounded-lg border border-border/70">
+                  {candidate.applications.map((app) => (
+                    <div
+                      key={app.id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-3 transition-colors hover:bg-muted/30"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">{app.job_title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {app.company} · Applied: {app.applied_at}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Match: {app.match_score}%
+                        </span>
+                        <Badge
+                          variant={
+                            app.status.toLowerCase() === "hired"
+                              ? "default"
+                              : app.status.toLowerCase() === "rejected"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="rounded-full capitalize"
+                        >
+                          {app.status}
+                        </Badge>
                       </div>
                     </div>
                   ))}

@@ -618,9 +618,12 @@ class FeatureExtractor:
             + features["keyword_similarity"] * 0.05
         )
 
-    def extract(self, resume: Dict[str, Any], job: Dict[str, Any]) -> Dict[str, Any]:
-        engine = MatchingEngine(resume, job)
-        match = engine.match()
+    def extract(self, resume: Dict[str, Any], job: Dict[str, Any], precomputed_match: Dict[str, Any] = None) -> Dict[str, Any]:
+        if precomputed_match is not None:
+            match = precomputed_match
+        else:
+            engine = MatchingEngine(resume, job)
+            match = engine.match()
 
         matched_skills = match.get("matched_skills", [])
         missing_skills = match.get("missing_skills", [])

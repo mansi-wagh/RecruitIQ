@@ -12,10 +12,16 @@ class CandidateResumeResponse(BaseModel):
 
 
 class CandidateResponse(BaseModel):
-    id: int
+    id: str
+    candidate_id: int
     name: str
     email: EmailStr
     role: str
+    status: Optional[str] = "New"
+    match_score: Optional[int] = 0
+    experience: Optional[str] = "0 yrs"
+    applied_at: Optional[str] = "Registered"
+    skills: list[str] = Field(default_factory=list)
 
     model_config = {
         "from_attributes": True
@@ -24,6 +30,7 @@ class CandidateResponse(BaseModel):
 
 class CandidateDetailResponse(CandidateResponse):
     resumes: list[CandidateResumeResponse] = Field(default_factory=list)
+    applications: list[dict] = Field(default_factory=list)
 
 
 class DashboardStats(BaseModel):
