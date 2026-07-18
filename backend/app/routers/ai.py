@@ -16,6 +16,7 @@ from app.services.matching_engine import MatchingEngine
 from app.services.predictor import Predictor
 from app.services.resume_information_extractor import ResumeExtractor
 from app.auth.jwt_handler import get_current_user
+from app.auth.rate_limiter import ai_limiter
 
 router = APIRouter(
     prefix="/ai",
@@ -80,8 +81,8 @@ def list_jobs(
     ]
 
 
-@router.post("/analyze")
-def analyze(
+@router.post("/analyze", dependencies=[Depends(ai_limiter)])
+async def analyze(
     resume_name: str,
     job_id: str,
     db: Session = Depends(get_db),
@@ -125,16 +126,18 @@ def analyze(
             detail="Job not found",
         )
 
-    # Parse and extract resume
-    from app.services.resume_parser import parse_resume
-    if not os.path.exists(resume_record.resume_path):
-        raise HTTPException(
-            status_code=404,
-            detail="Resume file path does not exist on disk"
-        )
+    import tempfile
+    from app.services.storage_service import StorageService
+    storage_service = StorageService()
+    
+    suffix = os.path.splitext(resume_record.resume_path)[1].lower()
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        temp_path = temp_file.name
 
     try:
-        resume_text = parse_resume(resume_record.resume_path)
+        storage_service.download_file(resume_record.resume_path, temp_path)
+        from app.services.resume_parser import parse_resume
+        resume_text = parse_resume(temp_path)
         extractor = ResumeExtractor(resume_text)
         extracted_data = extractor.extract_all()
     except Exception as e:
@@ -142,6 +145,12 @@ def analyze(
             status_code=500,
             detail=f"Failed to parse or extract resume: {str(e)}"
         )
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 
     # Reconstruct resume dictionary
     resume_dict = {
@@ -175,16 +184,24 @@ def analyze(
     features = feature_extractor.extract(resume_dict, job_dict, precomputed_match=match)
     prediction = predictor.predict(features)
 
-    candidate_summary = llm_service.generate_candidate_summary(resume_dict, prediction)
-    skill_gap = llm_service.generate_skill_gap(
-        match.get("matched_skills", []),
-        match.get("missing_skills", [])
-    )
-    interview_questions = llm_service.generate_interview_questions(
-        match.get("missing_skills", [])
-    )
-    resume_suggestions = llm_service.generate_resume_suggestions(
-        match.get("missing_skills", [])
+    import asyncio
+    (
+        candidate_summary,
+        skill_gap,
+        interview_questions,
+        resume_suggestions,
+    ) = await asyncio.gather(
+        llm_service.generate_candidate_summary_async(resume_dict, prediction),
+        llm_service.generate_skill_gap_async(
+            match.get("matched_skills", []),
+            match.get("missing_skills", [])
+        ),
+        llm_service.generate_interview_questions_async(
+            match.get("missing_skills", [])
+        ),
+        llm_service.generate_resume_suggestions_async(
+            match.get("missing_skills", [])
+        )
     )
 
     return {

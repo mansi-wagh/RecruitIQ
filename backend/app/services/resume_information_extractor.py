@@ -5,6 +5,8 @@ from pathlib import Path
 
 class ResumeExtractor:
 
+    _skills_cache = None
+
     def __init__(self, text):
 
         self.text = text
@@ -55,16 +57,16 @@ class ResumeExtractor:
 
     def extract_skills(self):
 
-        skills_file = (
-            Path(__file__).resolve().parent.parent
-            / "data"
-            / "skills.csv"
-        )
+        if ResumeExtractor._skills_cache is None:
+            skills_file = (
+                Path(__file__).resolve().parent.parent
+                / "data"
+                / "skills.csv"
+            )
+            skills_df = pd.read_csv(skills_file)
+            ResumeExtractor._skills_cache = skills_df["canonical"].dropna().tolist()
 
-        skills_df = pd.read_csv(skills_file)
-
-        skill_list = skills_df["canonical"].dropna().tolist()
-
+        skill_list = ResumeExtractor._skills_cache
         found = []
 
         lower_text = self.text.lower()

@@ -45,6 +45,30 @@ def upload_resume(
             detail="Only PDF and DOCX resumes are allowed"
         )
 
+    # 1. Enforce file size limit of 5MB
+    MAX_SIZE = 5 * 1024 * 1024
+    contents = resume.file.read(MAX_SIZE + 1)
+    if len(contents) > MAX_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="File size exceeds the 5MB limit"
+        )
+    # Seek back to start for subsequent upload reading
+    resume.file.seek(0)
+
+    # 2. Enforce magic bytes verification to check actual MIME type
+    magic_bytes = contents[:4]
+    if extension == ".pdf" and not magic_bytes.startswith(b"%PDF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid PDF file: signature does not match PDF format"
+        )
+    elif extension == ".docx" and not magic_bytes.startswith(b"PK\x03\x04"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid DOCX file: signature does not match ZIP/Office open XML format"
+        )
+
     candidate = None
     if candidate_id is not None:
         candidate = (
@@ -59,31 +83,17 @@ def upload_resume(
                 detail="Candidate not found"
             )
 
-    upload_folder = "uploads/resumes"
-
-    os.makedirs(
-        upload_folder,
-        exist_ok=True
-    )
-
     stored_file_name = f"{uuid4().hex}_{file_name}"
+    db_file_path = f"resumes/{stored_file_name}"
 
-    file_path = os.path.join(
-
-        upload_folder,
-
-        stored_file_name
-
-    ).replace("\\", "/")
-
-    with open(file_path, "wb") as buffer:
-
-        shutil.copyfileobj(
-
-            resume.file,
-
-            buffer
-
+    from app.services.storage_service import StorageService
+    storage_service = StorageService()
+    try:
+        storage_service.upload_file(resume.file, db_file_path)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload file to storage: {str(e)}"
         )
 
     if candidate is not None:
@@ -96,23 +106,19 @@ def upload_resume(
         if existing_resume is None:
             existing_resume = Resume(
                 user_id=candidate.id,
-                resume_path=file_path
+                resume_path=db_file_path
             )
             db.add(existing_resume)
         else:
-            existing_resume.resume_path = file_path
+            existing_resume.resume_path = db_file_path
 
         db.commit()
         db.refresh(existing_resume)
 
     return {
-
         "message": "Resume uploaded successfully",
-
         "file_name": file_name,
-
-        "resume_path": file_path
-
+        "resume_path": db_file_path
     }
 
 @router.post("/extract")
@@ -120,7 +126,6 @@ def extract_resume(
     filename: str,
     current_user: User = Depends(get_current_user)
 ):
-    # Make sure filename is safe
     safe_name = os.path.basename(filename)
     if safe_name != filename or ".." in filename:
         raise HTTPException(
@@ -128,19 +133,42 @@ def extract_resume(
             detail="Invalid filename"
         )
 
-    from app.services.resume_parser import parse_resume
+    from app.services.storage_service import StorageService
+    import tempfile
+    storage_service = StorageService()
+    
+    # Try searching for both resumes/filename and direct filename
+    object_name = f"resumes/{safe_name}"
+    if not storage_service.file_exists(object_name):
+        object_name = safe_name
+        if not storage_service.file_exists(object_name):
+            # Also try checking local fallback file directly
+            local_path = os.path.join("uploads", "resumes", safe_name)
+            if not os.path.exists(local_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail="Resume file not found in storage"
+                )
 
-    path = os.path.join("uploads", "resumes", safe_name)
+    suffix = os.path.splitext(safe_name)[1].lower()
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+        temp_path = temp_file.name
 
-    if not os.path.exists(path):
+    try:
+        storage_service.download_file(object_name, temp_path)
+        from app.services.resume_parser import parse_resume
+        resume_text = parse_resume(temp_path)
+        extractor = ResumeExtractor(resume_text)
+        return extractor.extract_all()
+    except Exception as e:
         raise HTTPException(
-            status_code=404,
-            detail="Resume file not found"
+            status_code=500,
+            detail=f"Failed to parse or extract resume: {str(e)}"
         )
-
-    resume_text = parse_resume(path)
-
-    extractor = ResumeExtractor(resume_text)
-
-    return extractor.extract_all()
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 

@@ -5,6 +5,7 @@ from typing import List
 from app.services.llm_service import LLMService
 from app.auth.jwt_handler import get_current_hr
 from app.models.user import User
+from app.auth.rate_limiter import chat_limiter
 
 router = APIRouter(prefix="/assistant", tags=["HR Assistant"])
 
@@ -21,7 +22,7 @@ class ChatResponse(BaseModel):
 llm_service = LLMService()
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(chat_limiter)])
 def assistant_chat(
     req: ChatRequest,
     current_user: User = Depends(get_current_hr)

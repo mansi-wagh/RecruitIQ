@@ -18,3 +18,14 @@ class BaseLLMProvider(ABC):
         Generate a response for the supplied prompt.
         """
         pass
+
+    @abstractmethod
+    async def generate_async(
+        self,
+        prompt: str,
+        response_mime_type: str = "text/plain",
+    ) -> str:
+        """
+        Generate a response asynchronously.
+        """
+        pass

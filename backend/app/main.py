@@ -25,7 +25,6 @@ from app.config import CORS_ORIGINS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
     yield
 
 
@@ -39,6 +38,35 @@ def health_check():
 
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
+
+@app.get("/uploads/resumes/{filename:path}")
+def serve_resume(filename: str):
+    import os
+    from fastapi.responses import RedirectResponse, FileResponse
+    from fastapi import HTTPException
+    from app.services.storage_service import StorageService
+
+    # Resolve local path
+    local_path = os.path.join(uploads_dir, "resumes", filename)
+    if os.path.exists(local_path):
+        return FileResponse(local_path)
+    
+    # Try stripping resumes/ prefix for local fallback lookup if needed
+    if filename.startswith("resumes/"):
+        stripped = filename.replace("resumes/", "", 1)
+        local_path_stripped = os.path.join(uploads_dir, "resumes", stripped)
+        if os.path.exists(local_path_stripped):
+            return FileResponse(local_path_stripped)
+
+    # Cloud fallback via presigned URL redirect
+    storage_service = StorageService()
+    if storage_service.enabled:
+        signed_url = storage_service.generate_signed_url(filename)
+        if signed_url:
+            return RedirectResponse(url=signed_url)
+
+    raise HTTPException(status_code=404, detail="Resume file not found")
+
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 app.add_middleware(

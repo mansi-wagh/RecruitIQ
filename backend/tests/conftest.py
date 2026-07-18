@@ -10,14 +10,10 @@ os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "60"
 os.environ["GEMINI_API_KEY"] = "mock-api-key"
 os.environ["LLM_PROVIDER"] = "gemini"
 
-from app.database import Base
+from app.database import Base, engine
 from app.main import app
 from fastapi.testclient import TestClient
 
-engine = create_engine(
-    "sqlite:///:memory:",
-    connect_args={"check_same_thread": False}
-)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -39,6 +35,23 @@ def db_session():
     session.close()
     transaction.rollback()
     connection.close()
+
+
+@pytest.fixture(autouse=True)
+def mock_session_local(db_session, monkeypatch):
+    original_close = db_session.close
+    original_commit = db_session.commit
+    
+    db_session.close = lambda: None
+    db_session.commit = lambda: db_session.flush()
+    
+    import app.database
+    monkeypatch.setattr(app.database, "SessionLocal", lambda: db_session)
+    
+    yield
+    
+    db_session.close = original_close
+    db_session.commit = original_commit
 
 
 @pytest.fixture

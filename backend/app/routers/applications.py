@@ -42,11 +42,28 @@ def async_score_application(application_id: int):
             .first()
         )
 
-        if resume_rec and os.path.exists(resume_rec.resume_path):
+        if resume_rec:
+            import tempfile
+            from app.services.storage_service import StorageService
+            storage_service = StorageService()
+            suffix = os.path.splitext(resume_rec.resume_path)[1].lower()
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                temp_path = temp_file.name
             try:
-                resume_text = parse_resume(resume_rec.resume_path)
+                storage_service.download_file(resume_rec.resume_path, temp_path)
+                resume_text = parse_resume(temp_path)
                 extractor = ResumeExtractor(resume_text)
                 extracted_data = extractor.extract_all()
+            except Exception as e:
+                logger.error("Error downloading or parsing resume for scoring: %s", e, exc_info=True)
+                return
+            finally:
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
+            try:
 
                 resume_dict = {
                     "skills": extracted_data.get("skills", []),

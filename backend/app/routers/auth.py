@@ -8,6 +8,7 @@ from app.database import get_db
 from app.auth.jwt_handler import verify_token
 from fastapi import HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.auth.rate_limiter import register_limiter, login_limiter
 
 
 router = APIRouter(
@@ -17,7 +18,7 @@ router = APIRouter(
 
 security = HTTPBearer()
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(register_limiter)])
 def register(
     user: UserRegister,
     db: Session = Depends(get_db)
@@ -58,7 +59,7 @@ def register(
         "role": new_user.role
     }
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(login_limiter)])
 def login(
     user: UserLogin,
     db: Session = Depends(get_db)
