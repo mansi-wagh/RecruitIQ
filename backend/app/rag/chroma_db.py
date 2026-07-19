@@ -1,5 +1,6 @@
 import hashlib
 from typing import Dict, List
+import threading
 
 import chromadb
 from chromadb.config import Settings
@@ -7,6 +8,7 @@ from chromadb.config import Settings
 
 class ChromaDBManager:
     _instance = None
+    _init_lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -18,7 +20,9 @@ class ChromaDBManager:
         persist_directory="app/chroma_db",
         collection_name="recruitiq_gemini",
     ):
-        if not hasattr(self, "initialized"):
+        with self._init_lock:
+            if hasattr(self, "initialized"):
+                return
             import time
             from app.logger import logger
             start_time = time.perf_counter()

@@ -2,11 +2,13 @@ import os
 import google.generativeai as genai
 from app.logger import logger
 from typing import Dict, List
+import threading
 
 
 class EmbeddingGenerator:
     _instance = None
     _shared_model = None
+    _init_lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -17,7 +19,9 @@ class EmbeddingGenerator:
         self,
         model_name: str = "models/gemini-embedding-001",
     ):
-        if not hasattr(self, "initialized"):
+        with self._init_lock:
+            if hasattr(self, "initialized"):
+                return
             import time
             start_time = time.perf_counter()
 

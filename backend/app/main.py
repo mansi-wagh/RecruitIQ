@@ -26,21 +26,27 @@ from app.config import CORS_ORIGINS
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Eagerly initialize AI resources (SentenceTransformer, ChromaDB, Retriever) at startup
-    # to avoid cold-start request latency (especially on Render Free Tier)
-    import time
+    # in a background thread to prevent blocking Uvicorn's port binding and startup process
+    # (crucial for avoiding Render Port Scan timeouts).
+    import asyncio
     from app.logger import logger
-    logger.info("Eagerly initializing AI resources (SentenceTransformer, ChromaDB, Retriever)...")
-    start_time = time.perf_counter()
+
+    def init_resources():
+        import time
+        logger.info("Eagerly initializing AI resources (SentenceTransformer, ChromaDB, Retriever) in background...")
+        start_time = time.perf_counter()
+        try:
+            from app.rag.retriever import DocumentRetriever
+            # Instantiating the retriever triggers loading EmbeddingGenerator and ChromaDBManager singletons
+            DocumentRetriever()
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"[{elapsed:.1f}s] AI resources fully initialized and ready")
+        except Exception as e:
+            logger.error("Failed to eagerly initialize AI resources in background: %s", e, exc_info=True)
+
+    # Schedule the initialization to run in a background thread so the lifespan yield happens immediately
+    asyncio.create_task(asyncio.to_thread(init_resources))
     
-    try:
-        from app.rag.retriever import DocumentRetriever
-        # Instantiating the retriever triggers loading EmbeddingGenerator and ChromaDBManager singletons
-        DocumentRetriever()
-        elapsed = time.perf_counter() - start_time
-        logger.info(f"[{elapsed:.1f}s] AI resources fully initialized and ready")
-    except Exception as e:
-        logger.error("Failed to eagerly initialize AI resources: %s", e, exc_info=True)
-        
     yield
 
 

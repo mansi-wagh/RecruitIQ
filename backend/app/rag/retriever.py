@@ -1,4 +1,5 @@
 from typing import List, Dict
+import threading
 
 from app.rag.embeddings import EmbeddingGenerator
 from app.rag.chroma_db import ChromaDBManager
@@ -11,6 +12,7 @@ class DocumentRetriever:
     from ChromaDB.
     """
     _instance = None
+    _init_lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -18,7 +20,9 @@ class DocumentRetriever:
         return cls._instance
 
     def __init__(self):
-        if not hasattr(self, "initialized"):
+        with self._init_lock:
+            if hasattr(self, "initialized"):
+                return
             # Initialize dependencies first
             self.embedder = EmbeddingGenerator()
             self.db = ChromaDBManager()
