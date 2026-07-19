@@ -16,7 +16,7 @@ class ChromaDBManager:
     def __init__(
         self,
         persist_directory="app/chroma_db",
-        collection_name="recruitiq",
+        collection_name="recruitiq_gemini",
     ):
         if not hasattr(self, "initialized"):
             import time
