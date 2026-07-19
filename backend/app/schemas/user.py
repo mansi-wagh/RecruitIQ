@@ -15,8 +15,8 @@ class UserRegister(BaseModel):
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
+        if not v or len(v.strip()) < 8:
+            raise ValueError("Password must be at least 8 characters long and cannot be empty whitespace")
         return v
 
     @field_validator("name")

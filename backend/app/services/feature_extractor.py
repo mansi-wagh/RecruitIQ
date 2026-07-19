@@ -426,7 +426,7 @@ class FeatureExtractor:
         matches = re.findall(r"(\d+)\+?\s*(?:year|yr)", text)
         if not matches:
             return 0
-        return max(int(match) for match in matches)
+        return sum(int(match) for match in matches)
 
     @classmethod
     def _has_word(cls, text: str, word: str) -> bool:

@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Sparkles, Calendar, ArrowUpRight, Briefcase, MapPin, Loader2 } from "lucide-react";
+import { Sparkles, Calendar, ArrowUpRight, Briefcase, MapPin, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/portal-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/kpi-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -54,7 +54,7 @@ function CandidateDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<Job[]>([]);
   const [hasResume, setHasResume] = useState(false);
-  const [resumeScore, setResumeScore] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,18 +85,7 @@ function CandidateDashboard() {
       const hasRes = profileRes.data.resumes && profileRes.data.resumes.length > 0;
       setHasResume(hasRes);
 
-      if (hasRes) {
-        let score = 30; // base score for uploading a resume
-        if (profileRes.data.skills && profileRes.data.skills.length > 0) {
-          score += Math.min(profileRes.data.skills.length * 5, 35);
-        }
-        if (profileRes.data.experience && profileRes.data.experience !== "Not provided") {
-          score += 35;
-        }
-        setResumeScore(Math.min(score, 100));
-      } else {
-        setResumeScore(0);
-      }
+
     } catch (err) {
       console.error("Failed to load dashboard data", err);
     } finally {
@@ -155,8 +144,7 @@ function CandidateDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard label="Resume score" value={hasResume ? String(resumeScore) : "N/A"} delta={hasResume ? "Optimized" : "No resume"} icon={FileText} />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <KpiCard label="Applications" value={String(applications.length)} delta="Total submissions" icon={Briefcase} />
             <KpiCard label="Job matches" value={String(recommendedJobs.length)} delta="Active open postings" icon={Sparkles} />
             <KpiCard label="Interviews" value={String(interviewsCount)} delta="Status updates" icon={Calendar} />
@@ -219,21 +207,16 @@ function CandidateDashboard() {
             <div className="space-y-6">
               <Card className="border-border/60 shadow-[var(--shadow-card)]">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold">Resume health</CardTitle>
+                  <CardTitle className="text-base font-semibold">Resume</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-4xl font-semibold tracking-tight">{resumeScore}</div>
-                    <div className="text-sm text-muted-foreground">/ 100</div>
-                  </div>
-                  <Progress value={resumeScore} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
                     {hasResume
-                      ? "Great foundation. Use AI analysis to see missing skills and matches."
-                      : "Upload your resume first to evaluate structure and key technical skills."}
+                      ? "Your resume is uploaded. Use AI analysis to see skill matches."
+                      : "Upload your resume to start matching with jobs."}
                   </p>
                   <Button asChild variant="outline" size="sm" className="w-full">
-                    <Link to="/candidate/upload">Manage resume</Link>
+                    <Link to="/candidate/upload">{hasResume ? "Update resume" : "Upload resume"}</Link>
                   </Button>
                 </CardContent>
               </Card>

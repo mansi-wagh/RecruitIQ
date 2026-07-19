@@ -224,7 +224,8 @@ def forgot_password(
             detail="User with this email does not exist"
         )
 
-    temp_pass = "reset1234"
+    import secrets
+    temp_pass = secrets.token_hex(4)  # 8 random hex characters
     user.password_hash = hash_password(temp_pass)
     db.commit()
 

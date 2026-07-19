@@ -10,6 +10,7 @@ class JobCreate(BaseModel):
     description: Optional[str] = ""
     required_skills: Optional[str] = ""
     experience_required: Optional[str] = ""
+    education_required: Optional[str] = ""
 
 
 class JobUpdate(BaseModel):
@@ -20,6 +21,7 @@ class JobUpdate(BaseModel):
     description: Optional[str] = None
     required_skills: Optional[str] = None
     experience_required: Optional[str] = None
+    education_required: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -32,6 +34,7 @@ class JobResponse(BaseModel):
     description: Optional[str] = None
     required_skills: Optional[str] = None
     experience_required: Optional[str] = None
+    education_required: Optional[str] = None
     status: Optional[str] = "Open"
     applicants: int = 0
     created_by: Optional[int] = None

@@ -174,7 +174,7 @@ async def analyze(
         "description": job_record.description or "",
         "skills": skills_list,
         "experience": job_record.experience_required or "",
-        "education": "Bachelor's"  # Default fallback education
+        "education": job_record.education_required or ""
     }
 
     # Execute ML / matching engine

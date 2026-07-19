@@ -127,3 +127,9 @@ dataset/
 
 # Keep documentation
 !dataset/README.md
+
+# ==========================
+# ML Model Artifacts
+# ==========================
+*.pkl
+backend/app/models/*.pkl

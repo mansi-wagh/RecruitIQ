@@ -1,9 +1,14 @@
 import hashlib
+from pathlib import Path
 from typing import Dict, List
 import threading
 
 import chromadb
 from chromadb.config import Settings
+
+# Compute absolute path to app/chroma_db regardless of CWD
+BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_CHROMA_DIR = str(BASE_DIR / "chroma_db")
 
 
 class ChromaDBManager:
@@ -17,12 +22,16 @@ class ChromaDBManager:
 
     def __init__(
         self,
-        persist_directory="app/chroma_db",
+        persist_directory=None,
         collection_name="recruitiq_gemini",
     ):
         with self._init_lock:
             if hasattr(self, "initialized"):
                 return
+            if persist_directory is None:
+                persist_directory = DEFAULT_CHROMA_DIR
+            else:
+                persist_directory = str(Path(persist_directory).resolve())
             import time
             from app.logger import logger
             start_time = time.perf_counter()

@@ -54,6 +54,7 @@ interface Job {
   description: string | null;
   required_skills: string | null;
   experience_required: string | null;
+  education_required: string | null;
   status: string | null;
   applicants: number;
   created_by: number | null;
@@ -116,6 +117,7 @@ function JobsPage() {
         description: String(fd.get("description") ?? ""),
         required_skills: String(fd.get("skills") ?? ""),
         experience_required: String(fd.get("experience") ?? ""),
+        education_required: String(fd.get("education") ?? ""),
       });
 
       toast.success("Job created successfully");
@@ -142,6 +144,7 @@ function JobsPage() {
         description: String(fd.get("description") ?? ""),
         required_skills: String(fd.get("skills") ?? ""),
         experience_required: String(fd.get("experience") ?? ""),
+        education_required: String(fd.get("education") ?? ""),
       });
 
       toast.success("Job updated successfully");
@@ -221,6 +224,15 @@ function JobsPage() {
                     id="experience"
                     name="experience"
                     defaultValue="3-5 yrs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="education">Education required</Label>
+                  <Input
+                    id="education"
+                    name="education"
+                    placeholder="Bachelor's, Master's, PhD…"
                   />
                 </div>
 
@@ -400,6 +412,16 @@ function JobsPage() {
                     defaultValue={editJob.experience_required ?? ""}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-education">Education required</Label>
+                <Input
+                  id="edit-education"
+                  name="education"
+                  defaultValue={editJob.education_required ?? ""}
+                  placeholder="Bachelor's, Master's, PhD…"
+                />
               </div>
 
               <div className="space-y-1.5">

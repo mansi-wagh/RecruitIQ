@@ -77,7 +77,7 @@ def async_score_application(application_id: int):
                 job_dict = {
                     "skills": job_skills,
                     "experience": job.experience_required or "",
-                    "education": "Bachelor's"
+                    "education": job.education_required or ""
                 }
 
                 engine = MatchingEngine(resume_dict, job_dict)

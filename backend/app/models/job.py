@@ -21,6 +21,8 @@ class Job(Base):
 
     experience_required = Column(String)
 
+    education_required = Column(String)
+
     description = Column(Text)
 
     required_skills = Column(Text)

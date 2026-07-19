@@ -168,30 +168,46 @@ class MatchingEngine:
             certifications
         ).lower()
 
+        # Job-specific required skills and text
+        job_skills = set(
+            self.normalizer.normalize_list(
+                self.job.get("skills", [])
+            )
+        )
+        job_text = (
+            str(self.job.get("title", "")) + " " + str(self.job.get("description", ""))
+        ).lower()
+
+        matched = set()
+
+        # 1. Match certifications against job required skills
+        for skill in job_skills:
+            if skill.lower() in cert_text:
+                matched.add(skill.title())
+
+        # 2. Match certifications against standard industry certs relevant to the job or general tech
         preferred = [
-            "aws",
-            "azure",
-            "google cloud",
-            "oracle",
-            "python",
-            "java",
-            "docker"
+            "aws", "azure", "google cloud", "gcp", "oracle", "python", "java",
+            "docker", "kubernetes", "cka", "cissp", "pmp", "scrum", "terraform",
+            "cisco", "ccna", "comptia"
         ]
-
-        matched = []
-
         for cert in preferred:
             if cert in cert_text:
-                matched.append(cert.title())
+                matched.add(cert.upper() if len(cert) <= 4 else cert.title())
 
-        score = min(
-            len(matched) * 20,
-            100
-        )
+        matched_list = sorted(list(matched))
+
+        if not certifications:
+            score = 0.0
+        elif matched_list:
+            score = min(len(matched_list) * 25.0, 100.0)
+        else:
+            # Candidate has certifications listed, baseline partial match credit
+            score = 50.0
 
         return {
-            "matched_certifications": matched,
-            "certification_score": score
+            "matched_certifications": matched_list,
+            "certification_score": round(score, 2)
         }
 
     def match(self):
