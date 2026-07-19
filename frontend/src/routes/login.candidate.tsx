@@ -8,6 +8,7 @@ export const Route = createFileRoute("/login/candidate")({
       subtitle="Sign in to track applications and discover roles matched for you."
       illustration={<CandidateIllustration />}
       redirectTo="/candidate/dashboard"
+      loginAs="candidate"
       ctaLabel="Login"
       footerText="Are you hiring?"
       footerLinkLabel="HR login"
