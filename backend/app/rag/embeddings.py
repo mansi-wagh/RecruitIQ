@@ -44,8 +44,8 @@ class EmbeddingGenerator:
 
                     for i in range(0, len(text_list), batch_size):
                         batch = text_list[i : i + batch_size]
-                        retries = 5
-                        delay = 2.0
+                        retries = 8
+                        delay = 30.0
 
                         while retries > 0:
                             try:
@@ -68,7 +68,7 @@ class EmbeddingGenerator:
                                         f"Rate limit hit embedding batch {i//batch_size}. Retrying in {delay:.1f}s... Error: {err_msg}"
                                     )
                                     py_time.sleep(delay)
-                                    delay *= 2.0
+                                    delay = max(delay * 1.5, 30.0)
                                     retries -= 1
                                 else:
                                     logger.error(f"Error embedding batch: {e}")
