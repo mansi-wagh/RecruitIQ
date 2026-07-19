@@ -191,6 +191,10 @@ class LLMService:
         """
         RAG Chat assistant for HR policy queries.
         """
+        import time
+        from app.logger import logger
+        start_time = time.perf_counter()
+
         # Retrieve context from ChromaDB
         retrieved_docs = self.retriever.retrieve(query, top_k=3)
         
@@ -220,6 +224,9 @@ Response:
         # Extract unique sources
         sources = list(set(doc["source"] for doc in retrieved_docs if doc.get("source")))
         
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"[{elapsed:.1f}s] Response Generation Completed")
+
         return {
             "text": response_text,
             "sources": sources

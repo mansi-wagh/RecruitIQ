@@ -6,23 +6,37 @@ from chromadb.config import Settings
 
 
 class ChromaDBManager:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ChromaDBManager, cls).__new__(cls)
+        return cls._instance
 
     def __init__(
         self,
         persist_directory="app/chroma_db",
         collection_name="recruitiq",
     ):
+        if not hasattr(self, "initialized"):
+            import time
+            from app.logger import logger
+            start_time = time.perf_counter()
 
-        self.client = chromadb.PersistentClient(
-            path=persist_directory,
-            settings=Settings(
-                anonymized_telemetry=False,
-            ),
-        )
+            self.client = chromadb.PersistentClient(
+                path=persist_directory,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                ),
+            )
 
-        self.collection = self.client.get_or_create_collection(
-            collection_name
-        )
+            self.collection = self.client.get_or_create_collection(
+                collection_name
+            )
+            self.initialized = True
+
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"[{elapsed:.1f}s] Chroma Connected")
 
     def add_documents(
         self,

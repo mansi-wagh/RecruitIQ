@@ -10,37 +10,52 @@ class DocumentRetriever:
     Retrieves the most relevant document chunks
     from ChromaDB.
     """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(DocumentRetriever, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
+        if not hasattr(self, "initialized"):
+            # Initialize dependencies first
+            self.embedder = EmbeddingGenerator()
+            self.db = ChromaDBManager()
 
-        self.embedder = EmbeddingGenerator()
+            import time
+            start_time = time.perf_counter()
 
-        self.db = ChromaDBManager()
+            try:
+                if self.db.collection.count() == 0:
+                    from app.rag.loader import DocumentLoader
+                    from app.rag.chunker import DocumentChunker
+                    import os
+                    
+                    kb_path = "app/data/knowledge_base"
+                    if os.path.exists(kb_path):
+                        loader = DocumentLoader(kb_path)
+                        docs = loader.load_documents()
+                        if docs:
+                            chunker = DocumentChunker()
+                            chunks = chunker.split_documents(docs)
+                            if chunks:
+                                embedded = self.embedder.generate_embeddings(chunks)
+                                self.db.add_documents(embedded)
+            except Exception as e:
+                logger.error("RAG bootstrap indexing error: %s", e, exc_info=True)
 
-        try:
-            if self.db.collection.count() == 0:
-                from app.rag.loader import DocumentLoader
-                from app.rag.chunker import DocumentChunker
-                import os
-                
-                kb_path = "app/data/knowledge_base"
-                if os.path.exists(kb_path):
-                    loader = DocumentLoader(kb_path)
-                    docs = loader.load_documents()
-                    if docs:
-                        chunker = DocumentChunker()
-                        chunks = chunker.split_documents(docs)
-                        if chunks:
-                            embedded = self.embedder.generate_embeddings(chunks)
-                            self.db.add_documents(embedded)
-        except Exception as e:
-            logger.error("RAG bootstrap indexing error: %s", e, exc_info=True)
+            self.initialized = True
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"[{elapsed:.1f}s] Retriever Ready")
 
     def retrieve(
         self,
         query: str,
         top_k: int = 5,
     ) -> List[Dict]:
+        import time
+        start_time = time.perf_counter()
 
         query_embedding = self.embedder.model.encode(
             query,
@@ -51,6 +66,9 @@ class DocumentRetriever:
             query_embedding=query_embedding,
             top_k=top_k,
         )
+
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"[{elapsed:.1f}s] Similarity Search Completed")
 
         retrieved = []
 

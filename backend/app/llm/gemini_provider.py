@@ -31,11 +31,16 @@ class GeminiProvider(BaseLLMProvider):
         prompt: str,
         response_mime_type: str = "text/plain",
     ) -> str:
+        import time
+        start_time = time.perf_counter()
         try:
             config = genai.types.GenerationConfig(
                 response_mime_type=response_mime_type
             )
             response = self.model.generate_content(prompt, generation_config=config)
+
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"[{elapsed:.1f}s] Gemini LLM Call Completed")
 
             if not response or not response.text:
                 logger.warning("Gemini returned an empty response")
@@ -52,11 +57,16 @@ class GeminiProvider(BaseLLMProvider):
         prompt: str,
         response_mime_type: str = "text/plain",
     ) -> str:
+        import time
+        start_time = time.perf_counter()
         try:
             config = genai.types.GenerationConfig(
                 response_mime_type=response_mime_type
             )
             response = await self.model.generate_content_async(prompt, generation_config=config)
+
+            elapsed = time.perf_counter() - start_time
+            logger.info(f"[{elapsed:.1f}s] Gemini LLM Call Completed")
 
             if not response or not response.text:
                 logger.warning("Gemini returned an empty response")

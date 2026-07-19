@@ -25,6 +25,22 @@ from app.config import CORS_ORIGINS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Eagerly initialize AI resources (SentenceTransformer, ChromaDB, Retriever) at startup
+    # to avoid cold-start request latency (especially on Render Free Tier)
+    import time
+    from app.logger import logger
+    logger.info("Eagerly initializing AI resources (SentenceTransformer, ChromaDB, Retriever)...")
+    start_time = time.perf_counter()
+    
+    try:
+        from app.rag.retriever import DocumentRetriever
+        # Instantiating the retriever triggers loading EmbeddingGenerator and ChromaDBManager singletons
+        DocumentRetriever()
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"[{elapsed:.1f}s] AI resources fully initialized and ready")
+    except Exception as e:
+        logger.error("Failed to eagerly initialize AI resources: %s", e, exc_info=True)
+        
     yield
 
 
