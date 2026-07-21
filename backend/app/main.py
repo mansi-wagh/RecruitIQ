@@ -25,26 +25,24 @@ from app.config import CORS_ORIGINS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Eagerly initialize AI resources (SentenceTransformer, ChromaDB, Retriever) at startup
-    # in a background thread to prevent blocking Uvicorn's port binding and startup process
-    # (crucial for avoiding Render Port Scan timeouts).
+    # Pre-load ML models and ChromaDB in background thread
     import asyncio
     from app.logger import logger
 
     def init_resources():
         import time
-        logger.info("Eagerly initializing AI resources (SentenceTransformer, ChromaDB, Retriever) in background...")
+        logger.info("Loading resources in background...")
         start_time = time.perf_counter()
         try:
             from app.rag.retriever import DocumentRetriever
-            # Instantiating the retriever triggers loading EmbeddingGenerator and ChromaDBManager singletons
+            # Load retriever (triggers embedding model + ChromaDB)
             DocumentRetriever()
             elapsed = time.perf_counter() - start_time
-            logger.info(f"[{elapsed:.1f}s] AI resources fully initialized and ready")
+            logger.info(f"[{elapsed:.1f}s] Resources loaded")
         except Exception as e:
-            logger.error("Failed to eagerly initialize AI resources in background: %s", e, exc_info=True)
+            logger.error("Failed to load resources: %s", e, exc_info=True)
 
-    # Schedule the initialization to run in a background thread so the lifespan yield happens immediately
+    # Run in background so server starts immediately
     asyncio.create_task(asyncio.to_thread(init_resources))
     
     yield
@@ -68,19 +66,19 @@ def serve_resume(filename: str):
     from fastapi import HTTPException
     from app.services.storage_service import StorageService
 
-    # Resolve local path
+    # Try local file first
     local_path = os.path.join(uploads_dir, "resumes", filename)
     if os.path.exists(local_path):
         return FileResponse(local_path)
     
-    # Try stripping resumes/ prefix for local fallback lookup if needed
+    # Handle nested path
     if filename.startswith("resumes/"):
         stripped = filename.replace("resumes/", "", 1)
         local_path_stripped = os.path.join(uploads_dir, "resumes", stripped)
         if os.path.exists(local_path_stripped):
             return FileResponse(local_path_stripped)
 
-    # Cloud fallback via presigned URL redirect
+    # Fallback: cloud storage signed URL
     storage_service = StorageService()
     if storage_service.enabled:
         signed_url = storage_service.generate_signed_url(filename)

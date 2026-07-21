@@ -8,9 +8,7 @@ from app.llm.prompts import (
     resume_improvement_prompt,
 )
 class LLMService:
-    """
-    Handles all AI interactions for RecruitIQ.
-    """
+    """Handles LLM interactions for candidate analysis and chat."""
 
     def __init__(self):
         self.provider = ProviderFactory.get_provider()
@@ -23,14 +21,8 @@ class LLMService:
             self._retriever = DocumentRetriever()
         return self._retriever
 
-    def _build_context(
-        self,
-        query: str,
-    ) -> str:
-        """
-        Retrieves relevant documents from ChromaDB
-        and converts them into a single context string.
-        """
+    def _build_context(self, query: str) -> str:
+        """Retrieve relevant docs from ChromaDB as context string."""
 
         retrieved_docs = self.retriever.retrieve(query)
 
@@ -188,14 +180,12 @@ class LLMService:
 
 
     def generate_chat_response(self, query: str) -> dict:
-        """
-        RAG Chat assistant for HR policy queries.
-        """
+        """RAG-based chat assistant for HR queries."""
         import time
         from app.logger import logger
         start_time = time.perf_counter()
 
-        # Retrieve context from ChromaDB
+        # Get relevant docs from ChromaDB
         retrieved_docs = self.retriever.retrieve(query, top_k=3)
         
         if not retrieved_docs:
@@ -221,7 +211,7 @@ Response:
 """
         response_text = self.provider.generate(prompt)
         
-        # Extract unique sources
+        # Get unique source references
         sources = list(set(doc["source"] for doc in retrieved_docs if doc.get("source")))
         
         elapsed = time.perf_counter() - start_time

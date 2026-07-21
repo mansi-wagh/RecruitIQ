@@ -7,7 +7,7 @@ class ResumeExtractor:
 
     _skills_cache = None
 
-    # Comprehensive mapping of section names to all known header variants
+    # Section header keywords mapped to section names
     SECTION_HEADERS = {
         "experience": [
             "experience", "work experience", "professional experience",
@@ -45,6 +45,7 @@ class ResumeExtractor:
             "hackathons", "competitions", "positions of responsibility",
             "positions of responsibility & achievements", "leadership",
             "extra-curricular", "extracurricular", "extracurricular activities",
+            "co-curricular", "co curricular", "cocurricular",
             "volunteering", "volunteer experience",
         ],
         "interests": [
@@ -55,6 +56,10 @@ class ResumeExtractor:
         ],
         "languages": [
             "languages",
+        ],
+        "contact": [
+            "contact", "contact info", "contact information",
+            "contact details", "personal details", "personal information",
         ],
     }
 
@@ -70,29 +75,39 @@ class ResumeExtractor:
     # -------------------------
 
     def _detect_sections(self):
-        """Split resume lines into a section map based on detected headers.
+        """Split resume lines into sections based on header keywords."""
+        # Flat lookup: variant_text -> section_name
+        all_variants = {}
+        for section_name, variants in self.SECTION_HEADERS.items():
+            for v in variants:
+                all_variants[v] = section_name
 
-        Returns a dict like {"header": [...], "experience": [...], "education": [...]}
-        where "header" contains lines before the first recognized section.
-        """
         sections = {}
         current_section = "header"
         sections[current_section] = []
 
         for line in self.lines:
-            # Strip decorative and separator characters to normalize header text
+            # Clean decorative characters
             cleaned = re.sub(r'[:\-–—|•=*#_~]', '', line).strip()
-            # Remove leading numbering like "1. Education" or "2) Skills"
+            # Remove leading numbers like "1. Education"
             cleaned = re.sub(r'^\d+[.\)]\s*', '', cleaned).strip()
             lower = cleaned.lower()
 
-            # A section header is short and matches a known variant
+            # Match section header
             matched_section = None
             if len(cleaned) < 60:
-                for section_name, variants in self.SECTION_HEADERS.items():
-                    if lower in variants:
-                        matched_section = section_name
-                        break
+                # Exact match first
+                if lower in all_variants:
+                    matched_section = all_variants[lower]
+                else:
+                    # Fallback: startswith match (e.g. "PROJECTS Nashik")
+                    for variant, section_name in all_variants.items():
+                        if len(variant) >= 4 and lower.startswith(variant) and (
+                            len(lower) == len(variant)
+                            or not lower[len(variant)].isalpha()
+                        ):
+                            matched_section = section_name
+                            break
 
             if matched_section is not None:
                 current_section = matched_section
@@ -102,6 +117,39 @@ class ResumeExtractor:
                 sections.setdefault(current_section, []).append(line)
 
         return sections
+
+    # -------------------------
+
+    @staticmethod
+    def _clean_section_lines(lines):
+        """Remove noise lines (emails, phone numbers, leaked headers) from section content."""
+        noise_headers = {
+            "contact", "contact info", "contact information",
+            "linkedin", "github", "portfolio", "website",
+        }
+        cleaned = []
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            lower = stripped.lower()
+
+            # Skip email-only lines
+            if re.fullmatch(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', stripped):
+                continue
+
+            # Skip phone-only lines
+            digits = re.sub(r'\D', '', stripped)
+            if len(stripped) < 20 and 10 <= len(digits) <= 13 and len(digits) > len(stripped) * 0.5:
+                continue
+
+            # Skip leaked header words
+            cleaned_lower = re.sub(r'[:\-–—|•=*#_~]', '', lower).strip()
+            if cleaned_lower in noise_headers:
+                continue
+
+            cleaned.append(stripped)
+        return cleaned
 
     # -------------------------
 
@@ -130,15 +178,15 @@ class ResumeExtractor:
             if 2 <= len(words) <= 4:
                 lower_words = [w.lower() for w in words]
 
-                # Skip if any word is in blacklist
+                # Skip blacklisted words
                 if any(w in blacklist for w in lower_words):
                     continue
 
-                # Skip if line contains numbers, email, or URL symbols in original text
+                # Skip lines with numbers, emails, URLs
                 if re.search(r'[\d@+:/|\\]', line):
                     continue
 
-                # Skip if line is too long
+                # Skip long lines
                 if len(line) > 45:
                     continue
 
@@ -218,12 +266,12 @@ class ResumeExtractor:
     # -------------------------
 
     def extract_education(self):
-        # Use section-based detection first
+        # Section-based detection
         section_lines = self._sections.get("education", [])
         if section_lines:
-            return section_lines
+            return self._clean_section_lines(section_lines)
 
-        # Fallback: keyword matching with expanded list
+        # Fallback: keyword matching
         education = []
         keywords = [
             "b.tech", "b.e", "m.tech", "bachelor", "master", "degree",
@@ -238,17 +286,17 @@ class ResumeExtractor:
                     education.append(line)
                     break
 
-        return education
+        return self._clean_section_lines(education)
 
     # -------------------------
 
     def extract_experience(self):
-        # Use section-based detection first
+        # Section-based detection
         section_lines = self._sections.get("experience", [])
         if section_lines:
-            return section_lines
+            return self._clean_section_lines(section_lines)
 
-        # Fallback: original trigger-based logic with expanded stop words
+        # Fallback: trigger-based logic
         experience = []
         capture = False
         stop_words = [
@@ -267,17 +315,17 @@ class ResumeExtractor:
                     break
                 experience.append(line)
 
-        return experience
+        return self._clean_section_lines(experience)
 
     # -------------------------
 
     def extract_projects(self):
-        # Use section-based detection first
+        # Section-based detection
         section_lines = self._sections.get("projects", [])
         if section_lines:
-            return section_lines
+            return self._clean_section_lines(section_lines)
 
-        # Fallback: original trigger-based logic with expanded stop words
+        # Fallback: trigger-based logic
         projects = []
         capture = False
         stop_words = [
@@ -296,17 +344,17 @@ class ResumeExtractor:
                     break
                 projects.append(line)
 
-        return projects
+        return self._clean_section_lines(projects)
 
     # -------------------------
 
     def extract_certifications(self):
-        # Use section-based detection first
+        # Section-based detection
         section_lines = self._sections.get("certifications", [])
         if section_lines:
-            return section_lines
+            return self._clean_section_lines(section_lines)
 
-        # Fallback: original trigger-based logic with expanded stop words
+        # Fallback: trigger-based logic
         certifications = []
         capture = False
         stop_words = [
@@ -325,7 +373,7 @@ class ResumeExtractor:
                     break
                 certifications.append(line)
 
-        return certifications
+        return self._clean_section_lines(certifications)
 
     # -------------------------
 

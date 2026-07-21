@@ -4,9 +4,7 @@ from app.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_BUCKET
 from app.logger import logger
 
 class StorageService:
-    """
-    Unified Storage Service supporting Supabase Storage with local filesystem fallback.
-    """
+    """Storage with Supabase + local filesystem fallback."""
     def __init__(self):
         self.enabled = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
         self.bucket = SUPABASE_BUCKET or "resumes"
@@ -24,19 +22,16 @@ class StorageService:
             logger.warning("Supabase Storage config is missing. Falling back to local filesystem storage.")
 
     def upload_file(self, file_body, object_name: str) -> str:
-        """
-        Uploads a file to Supabase storage. If disabled, saves to local storage.
-        Returns the storage path (object_name) or local path.
-        """
+        """Upload file to Supabase or save locally as fallback."""
         if self.enabled:
             try:
-                # Resolve content type based on extension
+                # Set content type based on file extension
                 ext = os.path.splitext(object_name)[1].lower()
                 content_type = "application/pdf" if ext == ".pdf" else "application/octet-stream"
                 if ext == ".docx":
                     content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 
-                # Read file body to bytes
+                # Read file content
                 if hasattr(file_body, "read"):
                     file_data = file_body.read()
                     if hasattr(file_body, "seek"):
@@ -67,9 +62,7 @@ class StorageService:
         return local_path
 
     def download_file(self, object_name: str, local_dest: str):
-        """
-        Downloads a file from Supabase storage to a local destination. If disabled, reads from local.
-        """
+        """Download file from Supabase or copy from local storage."""
         if self.enabled:
             try:
                 res_bytes = self.client.storage.from_(self.bucket).download(object_name)
@@ -94,9 +87,7 @@ class StorageService:
             raise FileNotFoundError(f"File not found locally or in Supabase: {object_name}")
 
     def delete_file(self, object_name: str):
-        """
-        Deletes a file from Supabase storage or local disk.
-        """
+        """Delete file from Supabase or local disk."""
         if self.enabled:
             try:
                 self.client.storage.from_(self.bucket).remove([object_name])
@@ -114,9 +105,7 @@ class StorageService:
             logger.info("Deleted local file %s", local_path)
 
     def generate_signed_url(self, object_name: str, expires_in: int = 900) -> str:
-        """
-        Generates a temporary public URL to download the file.
-        """
+        """Generate a temporary download URL for the file."""
         if self.enabled:
             try:
                 res = self.client.storage.from_(self.bucket).create_signed_url(object_name, expires_in=expires_in)
@@ -132,13 +121,11 @@ class StorageService:
             except Exception as e:
                 logger.error("Failed to generate signed URL for %s from Supabase: %s", object_name, e)
 
-        # Local fallback or return local path
+        # Fallback: local path
         return f"/uploads/resumes/{object_name}"
 
     def file_exists(self, object_name: str) -> bool:
-        """
-        Checks if a file exists in Supabase storage or local disk.
-        """
+        """Check if file exists in Supabase or on local disk."""
         if self.enabled:
             try:
                 parts = object_name.rsplit("/", 1)
