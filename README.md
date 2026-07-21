@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/frontend/public/logo.png" alt="RecruitIQ Logo" width="120px" onerror="this.src='https://placehold.co/120x120?text=RIQ'"/>
-</p>
 
 <h1 align="center">RecruitIQ</h1>
 
