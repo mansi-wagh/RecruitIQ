@@ -257,7 +257,7 @@ This section outlines major engineering constraints encountered during deploymen
 
 <p align="center">
   <strong>Login Page</strong><br/>
-  <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/Readme/hr_assistant.png" alt="HR Assistant Screenshot" width="85%" onerror="this.src='https://placehold.co/800x400?text=HR+Assistant'"/>
+  <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/Readme/login.png" alt="HR Assistant Screenshot" width="85%" onerror="this.src='https://placehold.co/800x400?text=HR+Assistant'"/>
 </p>
 
 ---
