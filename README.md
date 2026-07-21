@@ -251,17 +251,12 @@ This section outlines major engineering constraints encountered during deploymen
 </p>
 
 <p align="center">
-  <strong>AI Matching & Analysis Insights</strong><br/>
-  <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/Readme/ai_analysis.png" alt="AI Analysis Screenshot" width="85%" onerror="this.src='https://placehold.co/800x400?text=AI+Analysis'"/>
-</p>
-
-<p align="center">
   <strong>Candidate Application Feed</strong><br/>
   <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/Readme/candidate_portal.png" alt="Candidate Portal Screenshot" width="85%" onerror="this.src='https://placehold.co/800x400?text=Candidate+Portal'"/>
 </p>
 
 <p align="center">
-  <strong>Policy-Grounded HR Chat Assistant</strong><br/>
+  <strong>Login Page</strong><br/>
   <img src="https://raw.githubusercontent.com/mansi-wagh/RecruitIQ/main/Readme/hr_assistant.png" alt="HR Assistant Screenshot" width="85%" onerror="this.src='https://placehold.co/800x400?text=HR+Assistant'"/>
 </p>
 
