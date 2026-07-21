@@ -46,7 +46,7 @@ def _parse_pdf(file_path: str) -> str:
     try:
         text = ""
         for page in document:
-            text += page.get_text()
+            text += page.get_text("text", sort=True) + "\n"
         return text
     finally:
         document.close()

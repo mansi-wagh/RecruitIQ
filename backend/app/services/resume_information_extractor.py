@@ -42,6 +42,10 @@ class ResumeExtractor:
         "achievements": [
             "achievements", "awards", "honors", "accomplishments",
             "awards & achievements", "awards and achievements",
+            "hackathons", "competitions", "positions of responsibility",
+            "positions of responsibility & achievements", "leadership",
+            "extra-curricular", "extracurricular", "extracurricular activities",
+            "volunteering", "volunteer experience",
         ],
         "interests": [
             "interests", "hobbies", "hobbies & interests",
@@ -102,9 +106,65 @@ class ResumeExtractor:
     # -------------------------
 
     def extract_name(self):
-        for line in self.lines:
-            if len(line.split()) >= 2:
-                return line
+        email = self.extract_email()
+        email_prefix = email.split("@")[0].lower() if email else ""
+
+        blacklist = {
+            "ranked", "top", "teams", "team", "sunhacks", "hackathon", "qualified", "phase",
+            "mastermind", "competition", "ambassador", "volunteer", "intern", "developer",
+            "engineer", "student", "experience", "education", "projects", "skills",
+            "certifications", "achievements", "summary", "contact", "profile", "curriculum",
+            "vitae", "resume", "university", "college", "institute", "school", "department",
+            "hackeramp", "codeclash", "smart", "india", "techfest", "fair", "international",
+            "audit", "research", "foundation", "hsc", "class", "percentage", "cgpa",
+            "b.tech", "btech", "mtech", "bachelor", "master", "diploma", "associate",
+            "lead", "manager", "leadsutra", "genoscope", "skills:", "tech:"
+        }
+
+        candidates = []
+
+        for index, line in enumerate(self.lines[:35]):
+            cleaned = re.sub(r'[^a-zA-Z\s.-]', '', line).strip()
+            words = cleaned.split()
+
+            if 2 <= len(words) <= 4:
+                lower_words = [w.lower() for w in words]
+
+                # Skip if any word is in blacklist
+                if any(w in blacklist for w in lower_words):
+                    continue
+
+                # Skip if line contains numbers, email, or URL symbols in original text
+                if re.search(r'[\d@+:/|\\]', line):
+                    continue
+
+                # Skip if line is too long
+                if len(line) > 45:
+                    continue
+
+                score = 10 - index
+
+                if line.isupper():
+                    score += 15
+                elif all(w[0].isupper() for w in words if len(w) > 0):
+                    score += 10
+
+                if email_prefix:
+                    matched = sum(1 for w in lower_words if w in email_prefix or (len(w) >= 3 and w in email_prefix))
+                    score += matched * 20
+
+                candidates.append((score, line))
+
+        if candidates:
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            return candidates[0][1]
+
+        for line in self.lines[:20]:
+            cleaned = re.sub(r'[^a-zA-Z\s]', '', line).strip()
+            words = cleaned.split()
+            if 2 <= len(words) <= 4 and not re.search(r'[\d@+:/|\\]', line):
+                if not any(w.lower() in blacklist for w in words):
+                    return line
         return ""
 
     # -------------------------
@@ -117,9 +177,19 @@ class ResumeExtractor:
     # -------------------------
 
     def extract_phone(self):
-        pattern = r"\b\d{10}\b"
-        match = re.search(pattern, self.text)
-        return match.group() if match else ""
+        patterns = [
+            r"(?:\+?\d{1,3}[\s\-\.]*)?\(?\d{2,5}\)?[\s\-\.]*\d{3,5}[\s\-\.]*\d{3,5}\b",
+            r"\+?\d{1,3}[\s\-\.]*\d{10}\b",
+            r"\b\d{10,12}\b",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, self.text)
+            if match:
+                phone = match.group().strip()
+                digits = re.sub(r"\D", "", phone)
+                if 10 <= len(digits) <= 13:
+                    return phone
+        return ""
 
     # -------------------------
 
