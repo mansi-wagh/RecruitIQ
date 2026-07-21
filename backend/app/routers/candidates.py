@@ -26,7 +26,7 @@ def get_dashboard_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_hr)
 ):
-    """Aggregate KPIs for the HR dashboard from PostgreSQL."""
+    """Dashboard stats: total candidates, jobs, open positions, avg match score."""
     total_candidates = (
         db.query(func.count(User.id))
         .filter(func.lower(User.role) == "candidate")

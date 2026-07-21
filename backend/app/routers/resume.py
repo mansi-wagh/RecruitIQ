@@ -45,7 +45,7 @@ def upload_resume(
             detail="Only PDF and DOCX resumes are allowed"
         )
 
-    # 1. Enforce file size limit of 5MB
+    # Check file size (max 5MB)
     MAX_SIZE = 5 * 1024 * 1024
     contents = resume.file.read(MAX_SIZE + 1)
     if len(contents) > MAX_SIZE:
@@ -53,10 +53,10 @@ def upload_resume(
             status_code=400,
             detail="File size exceeds the 5MB limit"
         )
-    # Seek back to start for subsequent upload reading
+    # Reset file pointer
     resume.file.seek(0)
 
-    # 2. Enforce magic bytes verification to check actual MIME type
+    # Verify file signature (magic bytes)
     magic_bytes = contents[:4]
     if extension == ".pdf" and not magic_bytes.startswith(b"%PDF"):
         raise HTTPException(
@@ -137,12 +137,12 @@ def extract_resume(
     import tempfile
     storage_service = StorageService()
     
-    # Try searching for both resumes/filename and direct filename
+    # Try both path formats
     object_name = f"resumes/{safe_name}"
     if not storage_service.file_exists(object_name):
         object_name = safe_name
         if not storage_service.file_exists(object_name):
-            # Also try checking local fallback file directly
+            # Check local file directly
             local_path = os.path.join("uploads", "resumes", safe_name)
             if not os.path.exists(local_path):
                 raise HTTPException(

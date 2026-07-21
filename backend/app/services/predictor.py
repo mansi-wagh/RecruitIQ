@@ -5,15 +5,7 @@ import pandas as pd
 
 
 class Predictor:
-    """
-    RecruitIQ ML Predictor
-
-    Responsibilities:
-    - Load trained XGBoost model
-    - Load feature column order
-    - Validate incoming features
-    - Return prediction probability
-    """
+    """Loads XGBoost model and predicts candidate match probability."""
 
     def __init__(self):
 
