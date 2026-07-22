@@ -476,8 +476,3 @@ The scope of this project required full-stack ownership across several engineeri
 * **Frontend Engineering:** Creating dashboards in React, managing routing states with TanStack Router, creating charts with Recharts, and writing client state query hooks.
 * **DevOps & Cloud Deployments:** Deploying and configuring environments on Render and Vercel, integrating Supabase storage, setting up cron-based keep-alive loops to bypass host system sleep rules, and resolving container-level memory allocations under free-tier limits.
 
----
-
-## 📄 License
-
-This project is licensed under the terms of the MIT License. See the [LICENSE](LICENSE) file for details.
