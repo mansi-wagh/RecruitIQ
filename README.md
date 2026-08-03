@@ -404,15 +404,15 @@ docker-compose up -d --build
 
 ---
 
-## What I learned / What was hard
+## Some challenges 
 
-Getting XGBoost to generalize across domains (tech vs healthcare vs finance resumes) took way more feature engineering than expected — the initial model was basically just memorizing the most common tech keywords. Also, ChromaDB's cold-start behavior when the vector store is empty caused some confusing 500 errors early on that took a while to trace back to the embedding step.
+Getting XGBoost to generalize across domains (tech vs healthcare vs finance resumes) took way more feature engineering than expected the initial model was basically just memorizing the most common tech keywords. Also, ChromaDB's cold-start behavior when the vector store is empty caused some confusing 500 errors early on that took a while to trace back to the embedding step.
 
 ---
 
 ## Known Limitations
 
-Gemini API latency makes the candidate summary generation slow — anywhere from 3 to 8 seconds per request depending on resume length. It works fine for demo purposes but would need async queuing (Celery or similar) before this could handle real recruiter volume. Also, the XGBoost model was trained on Kaggle resume data which skews heavily toward tech roles, so match scores for non-tech domains are less reliable.
+Gemini API latency makes the candidate summary generation slow anywhere from 3 to 8 seconds per request depending on resume length. It works fine for demo purposes but would need async queuing (Celery or similar) before this could handle real recruiter volume. Also, the XGBoost model was trained on Kaggle resume data which skews heavily toward tech roles, so match scores for non-tech domains are less reliable.
 
 ---
 
